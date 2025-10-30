@@ -350,27 +350,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       _refresh();
                     },
                   ),
-                  // refresh también disponible como gesto pull-to-refresh abajo
-                  if (logged)
-                    PopupMenuButton<String>(
-                      tooltip: 'Más opciones',
-                      icon: const Icon(Icons.more_vert),
-                      onSelected: (v) {
-                        if (v == 'share_portfolio') _sharePortfolio();
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: 'share_portfolio',
-                          child: Row(
-                            children: [
-                              Icon(Icons.share),
-                              SizedBox(width: 8),
-                              Text('Compartir mi portafolio'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  // Menú movido al AppBar superior
                   if (logged)
                     Padding(
                       padding: const EdgeInsets.only(left: 8),

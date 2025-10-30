@@ -124,6 +124,41 @@ class _HomeShellState extends State<HomeShell> {
       appBar: AppBar(
         title: const Text('Innovate'),
         actions: [
+          if (_index == 0 && logged)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: 'Opciones de portafolio',
+              onSelected: (v) {
+                if (v == 'share_portfolio') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Compartir portafolio - en desarrollo')),
+                  );
+                }
+                if (v == 'open_public_profile') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Ver perfil público - en desarrollo')),
+                  );
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  value: 'share_portfolio',
+                  child: Row(children: [
+                    Icon(Icons.share),
+                    SizedBox(width: 8),
+                    Text('Compartir mi portafolio'),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: 'open_public_profile',
+                  child: Row(children: [
+                    Icon(Icons.public),
+                    SizedBox(width: 8),
+                    Text('Ver mi perfil público'),
+                  ]),
+                ),
+              ],
+            ),
           IconButton(
             tooltip: logged ? 'Cuenta (sesión activa)' : 'Iniciar sesión',
             onPressed: _openAuth,
