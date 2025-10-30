@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/api_client.dart';
 import 'data/projects_service.dart';
 import '../auth/data/auth_store.dart';
@@ -167,8 +169,37 @@ class _PortfolioPageState extends State<PortfolioPage> {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Compartir proyecto'),
-          content: SelectableText(fullUrl),
+          content: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SelectableText(fullUrl),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 180,
+                  height: 180,
+                  child: QrImageView(
+                    data: fullUrl,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+              ],
+            ),
+          ),
           actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: fullUrl));
+                if (context.mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Enlace copiado')),
+                  );
+                }
+              },
+              child: const Text('Copiar'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(context),
               child: const Text('Cerrar'),
