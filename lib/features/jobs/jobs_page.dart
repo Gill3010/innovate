@@ -33,7 +33,7 @@ class _JobsPageState extends State<JobsPage> {
     if (mounted) setState(() {});
   }
 
-  String _jobKey(JobItem j) => '${j.title}|${j.company}';
+  String _jobKey(JobItem j) => '${j.title}|${j.company}|${j.url}';
 
   Future<void> _search() async {
     final q = _queryCtrl.text.trim();
@@ -68,7 +68,11 @@ class _JobsPageState extends State<JobsPage> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Búsqueda guardada. Se te avisará si hay nuevas ofertas.')),
+      const SnackBar(
+        content: Text(
+          'Búsqueda guardada. Se te avisará si hay nuevas ofertas.',
+        ),
+      ),
     );
   }
 
@@ -121,7 +125,7 @@ class _JobsPageState extends State<JobsPage> {
                     value: _remoteOnly,
                     onChanged: (v) => setState(() => _remoteOnly = v),
                   ),
-                  const Text('Remoto')
+                  const Text('Remoto'),
                 ],
               ),
               ElevatedButton.icon(
@@ -162,13 +166,24 @@ class _JobsPageState extends State<JobsPage> {
                         final key = _jobKey(r);
                         final isFav = _favorites.contains(key);
                         return ListTile(
-                          tileColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                          tileColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLowest,
                           title: Text(r.title),
                           subtitle: Text('${r.company} • ${r.location}'),
                           trailing: IconButton(
                             icon: Icon(isFav ? Icons.star : Icons.star_border),
                             onPressed: () async {
-                              await _store.toggleFavorite(key);
+                              await _store.toggleFavoriteKey(
+                                key,
+                                payload: {
+                                  'title': r.title,
+                                  'company': r.company,
+                                  'location': r.location,
+                                  'url': r.url,
+                                  'source': r.source ?? 'adzuna',
+                                },
+                              );
                               _favorites = await _store.loadFavorites();
                               if (mounted) setState(() {});
                             },

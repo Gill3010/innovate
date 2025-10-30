@@ -1,18 +1,51 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/api_client.dart';
+import '../../auth/data/auth_store.dart';
 
 class FavoritesStore {
   static const _kFavs = 'job_favorites';
   static const _kSavedSearches = 'job_saved_searches';
   static const _kLastCounts = 'job_last_counts';
 
+  final ApiClient _api = ApiClient();
+
   Future<Set<String>> loadFavorites() async {
+    if (AuthStore.instance.isLoggedIn) {
+      try {
+        final r = await _api.get('/api/favorites/jobs');
+        final List data = jsonDecode(r.body) as List;
+        final set = <String>{};
+        for (final e in data) {
+          final m = e as Map<String, dynamic>;
+          set.add(_keyFrom(m['title'] as String, m['company'] as String, m['url'] as String));
+        }
+        return set;
+      } catch (_) {
+        // fallback local
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList(_kFavs) ?? const <String>[];
     return list.toSet();
   }
 
-  Future<void> toggleFavorite(String key) async {
+  Future<void> toggleFavoriteKey(String key, {Map<String, String>? payload}) async {
+    if (AuthStore.instance.isLoggedIn && payload != null) {
+      final isFav = (await loadFavorites()).contains(key);
+      if (isFav) {
+        await _api.delete('/api/favorites/jobs', query: {'url': payload['url'] ?? ''});
+      } else {
+        await _api.post('/api/favorites/jobs', body: {
+          'title': payload['title'] ?? '',
+          'company': payload['company'] ?? '',
+          'location': payload['location'] ?? '',
+          'url': payload['url'] ?? '',
+          'source': payload['source'] ?? 'adzuna',
+        });
+      }
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final set = (prefs.getStringList(_kFavs) ?? const <String>[]).toSet();
     if (set.contains(key)) {
@@ -22,6 +55,8 @@ class FavoritesStore {
     }
     await prefs.setStringList(_kFavs, set.toList());
   }
+
+  String _keyFrom(String title, String company, String url) => '$title|$company|$url';
 
   Future<List<Map<String, String>>> loadSavedSearches() async {
     final prefs = await SharedPreferences.getInstance();

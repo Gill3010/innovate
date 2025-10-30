@@ -6,6 +6,7 @@ from backend.routes.auth import auth_bp
 from backend.routes.projects import projects_bp
 from backend.routes.jobs import jobs_bp
 from backend.routes.ai import ai_bp
+from backend.routes.favorites import favorites_bp
 from backend.config import get_config
 
 
@@ -24,6 +25,7 @@ def create_app() -> Flask:
     app.register_blueprint(projects_bp, url_prefix="/api/projects")
     app.register_blueprint(jobs_bp, url_prefix="/api/jobs")
     app.register_blueprint(ai_bp, url_prefix="/api/ai")
+    app.register_blueprint(favorites_bp, url_prefix="/api/favorites")
 
     @app.get("/api/health")
     @limiter.exempt

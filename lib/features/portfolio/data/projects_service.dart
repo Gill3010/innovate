@@ -9,6 +9,8 @@ class ProjectItem {
     required this.technologies,
     required this.category,
     required this.featured,
+    this.images = '',
+    this.links = '',
   });
 
   final int id;
@@ -17,15 +19,19 @@ class ProjectItem {
   final String technologies;
   final String category;
   final bool featured;
+  final String images; // JSON array string
+  final String links;  // JSON array string
 
   factory ProjectItem.fromJson(Map<String, dynamic> j) => ProjectItem(
-    id: j['id'] as int,
-    title: (j['title'] ?? '') as String,
-    description: (j['description'] ?? '') as String,
-    technologies: (j['technologies'] ?? '') as String,
-    category: (j['category'] ?? 'general') as String,
-    featured: (j['featured'] ?? false) as bool,
-  );
+        id: j['id'] as int,
+        title: (j['title'] ?? '') as String,
+        description: (j['description'] ?? '') as String,
+        technologies: (j['technologies'] ?? '') as String,
+        category: (j['category'] ?? 'general') as String,
+        featured: (j['featured'] ?? false) as bool,
+        images: (j['images'] ?? '') as String,
+        links: (j['links'] ?? '') as String,
+      );
 }
 
 class ProjectsService {
@@ -55,6 +61,8 @@ class ProjectsService {
     String technologies = '',
     String category = 'general',
     bool featured = false,
+    String images = '',
+    String links = '',
   }) async {
     final r = await _api.post(
       '/api/projects',
@@ -64,6 +72,8 @@ class ProjectsService {
         'technologies': technologies,
         'category': category,
         'featured': featured,
+        'images': images,
+        'links': links,
       },
     );
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
@@ -77,6 +87,8 @@ class ProjectsService {
     String? technologies,
     String? category,
     bool? featured,
+    String? images,
+    String? links,
   }) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
@@ -84,6 +96,8 @@ class ProjectsService {
     if (technologies != null) body['technologies'] = technologies;
     if (category != null) body['category'] = category;
     if (featured != null) body['featured'] = featured;
+    if (images != null) body['images'] = images;
+    if (links != null) body['links'] = links;
     await _api.put('/api/projects/$id', body: body);
   }
 

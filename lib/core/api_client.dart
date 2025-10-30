@@ -52,8 +52,14 @@ class ApiClient {
     return resp;
   }
 
-  Future<http.Response> delete(String path) async {
-    final resp = await http.delete(_uri(path), headers: await _headers());
+  Future<http.Response> delete(
+    String path, {
+    Map<String, dynamic>? query,
+  }) async {
+    final resp = await http.delete(
+      _uri(path, query),
+      headers: await _headers(),
+    );
     _ensureOk(resp);
     return resp;
   }

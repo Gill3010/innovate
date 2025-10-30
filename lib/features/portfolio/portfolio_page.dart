@@ -3,6 +3,7 @@ import '../../core/api_client.dart';
 import 'data/projects_service.dart';
 import '../auth/data/auth_store.dart';
 import 'widgets/project_form.dart';
+import 'project_detail_page.dart';
 
 class PortfolioPage extends StatefulWidget {
   const PortfolioPage({super.key});
@@ -261,7 +262,14 @@ class _PortfolioPageState extends State<PortfolioPage> {
                               Align(
                                 alignment: Alignment.bottomRight,
                                 child: TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProjectDetailPage(projectId: p.id),
+                                      ),
+                                    );
+                                  },
                                   child: const Text('Ver detalle'),
                                 ),
                               ),
