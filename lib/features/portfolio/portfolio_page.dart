@@ -471,7 +471,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                         }
                                       },
                                     ),
-                                  if (logged) ...[
+                                  if (logged && !_explore) ...[
                                     IconButton(
                                       tooltip: 'Compartir',
                                       icon: const Icon(Icons.share),

@@ -125,6 +125,19 @@ class ProjectsService {
     return (j['share_url'] ?? '') as String;
   }
 
+  Future<Map<String, dynamic>> getPublicProfile(String token) async {
+    final r = await _api.get('/api/users/profile/$token');
+    return jsonDecode(r.body) as Map<String, dynamic>;
+  }
+
+  Future<List<ProjectItem>> listPortfolioByToken(String token) async {
+    final r = await _api.get('/api/projects/portfolio/$token');
+    final List data = jsonDecode(r.body) as List;
+    return data
+        .map((e) => ProjectItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<PublicListResult> listPublic({
     int page = 1,
     int perPage = 20,

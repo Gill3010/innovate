@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'features/portfolio/portfolio_page.dart';
 import 'features/jobs/jobs_page.dart';
 import 'features/ai/widgets/career_chat_sheet.dart';
 import 'features/auth/ui/auth_page.dart';
 import 'features/auth/data/auth_store.dart';
+import 'features/portfolio/data/projects_service.dart';
+import 'core/api_client.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'features/portfolio/public_profile_page.dart';
 
 void main() {
   runApp(const InnovateApp());
@@ -128,16 +134,82 @@ class _HomeShellState extends State<HomeShell> {
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert),
               tooltip: 'Opciones de portafolio',
-              onSelected: (v) {
+              onSelected: (v) async {
                 if (v == 'share_portfolio') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Compartir portafolio - en desarrollo')),
-                  );
+                  try {
+                    final service = ProjectsService(ApiClient());
+                    final shareUrl = await service.sharePortfolio();
+                    final fullUrl = '${ApiClient.defaultBaseUrl}$shareUrl';
+                    if (!context.mounted) return;
+                    await showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text('Compartir mi portafolio'),
+                        content: SizedBox(
+                          width: 320,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Comparte todos tus proyectos con este enlace:'),
+                              const SizedBox(height: 12),
+                              SelectableText(fullUrl),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: 180,
+                                height: 180,
+                                child: QrImageView(
+                                  data: fullUrl,
+                                  backgroundColor: Theme.of(context).colorScheme.surface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: fullUrl));
+                              if (context.mounted) Navigator.pop(context);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Enlace copiado')),
+                                );
+                              }
+                            },
+                            child: const Text('Copiar'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cerrar'),
+                          ),
+                        ],
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al compartir: $e')),
+                    );
+                  }
                 }
                 if (v == 'open_public_profile') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ver perfil público - en desarrollo')),
-                  );
+                  try {
+                    final service = ProjectsService(ApiClient());
+                    final shareUrl = await service.sharePortfolio();
+                    final token = shareUrl.split('/').last;
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PublicProfilePage(token: token),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('No se pudo abrir el perfil público: $e')),
+                    );
+                  }
                 }
               },
               itemBuilder: (context) => const [
