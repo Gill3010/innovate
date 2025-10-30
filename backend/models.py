@@ -14,6 +14,7 @@ class User(db.Model):
 class Project(db.Model):
     __tablename__ = "projects"
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, default="")
     technologies = db.Column(db.String(512), default="")
@@ -21,6 +22,7 @@ class Project(db.Model):
     links = db.Column(db.Text, default="")
     category = db.Column(db.String(128), default="general")
     featured = db.Column(db.Boolean, default=False)
+    share_token = db.Column(db.String(32), unique=True, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,3 +38,15 @@ class FavoriteJob(db.Model):
     source = db.Column(db.String(64), default="adzuna")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint("user_id", "url", name="uq_fav_user_url"),)
+
+
+class JobClick(db.Model):
+    __tablename__ = "job_clicks"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    url = db.Column(db.String(512), nullable=False)
+    title = db.Column(db.String(255))
+    company = db.Column(db.String(255))
+    source = db.Column(db.String(64))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    __table_args__ = (db.Index("ix_job_clicks_url_created", "url", "created_at"),)

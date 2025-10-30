@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import 'data/projects_service.dart';
 
@@ -58,16 +59,23 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                 const SizedBox(height: 16),
                 if (images.isNotEmpty)
                   SizedBox(
-                    height: 200,
+                    height: 220,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: images.length,
                       separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (context, i) => AspectRatio(
                         aspectRatio: 16 / 9,
-                        child: Container(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          child: Center(child: Text('Imagen ${i + 1}')),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            images[i],
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: const Center(child: Icon(Icons.broken_image)),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -77,8 +85,10 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                   for (final l in links)
                     FilledButton.tonal(
                       onPressed: () async {
-                        // ignore: deprecated_member_use
-                        // You can wire url_launcher here later
+                        final uri = Uri.tryParse(l);
+                        if (uri != null) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
                       },
                       child: Text(l),
                     ),

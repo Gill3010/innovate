@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../features/auth/data/auth_store.dart';
 
 class ApiClient {
@@ -16,6 +17,8 @@ class ApiClient {
     } catch (_) {}
     return 'http://127.0.0.1:8000';
   }
+
+  static String get defaultBaseUrl => _resolveDefaultBaseUrl();
 
   final String baseUrl;
 
@@ -65,7 +68,11 @@ class ApiClient {
   }
 
   Future<Map<String, String>> _headers() async {
-    final token = AuthStore.instance.token; // in-memory after load/login
+    String? token = AuthStore.instance.tokenValue; // prefer in-memory
+    if (token == null || token.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      token = prefs.getString('jwt_token');
+    }
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';

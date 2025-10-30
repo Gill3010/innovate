@@ -1,29 +1,35 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:rxdart/rxdart.dart';
 
 class AuthStore {
   AuthStore._();
   static final AuthStore instance = AuthStore._();
 
-  static const _kToken = 'auth_token';
-  String? _token;
+  final _token = BehaviorSubject<String?>.seeded(null);
+  Stream<String?> get token => _token.stream;
+  bool get isLoggedIn => _token.value != null;
+  String? get tokenValue => _token.value;
 
-  String? get token => _token;
-  bool get isLoggedIn => _token != null && _token!.isNotEmpty;
-
-  Future<void> load() async {
+  Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_kToken);
+    _token.add(prefs.getString('jwt_token'));
   }
 
-  Future<void> save(String token) async {
-    _token = token;
+  Future<void> load() => init();
+
+  Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kToken, token);
+    await prefs.setString('jwt_token', token);
+    _token.add(token);
   }
 
-  Future<void> clear() async {
-    _token = null;
+  Future<void> save(String token) => saveToken(token);
+
+  Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kToken);
+    await prefs.remove('jwt_token');
+    _token.add(null);
   }
+
+  Future<void> clear() => clearToken();
 }

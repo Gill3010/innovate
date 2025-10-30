@@ -20,18 +20,18 @@ class ProjectItem {
   final String category;
   final bool featured;
   final String images; // JSON array string
-  final String links;  // JSON array string
+  final String links; // JSON array string
 
   factory ProjectItem.fromJson(Map<String, dynamic> j) => ProjectItem(
-        id: j['id'] as int,
-        title: (j['title'] ?? '') as String,
-        description: (j['description'] ?? '') as String,
-        technologies: (j['technologies'] ?? '') as String,
-        category: (j['category'] ?? 'general') as String,
-        featured: (j['featured'] ?? false) as bool,
-        images: (j['images'] ?? '') as String,
-        links: (j['links'] ?? '') as String,
-      );
+    id: j['id'] as int,
+    title: (j['title'] ?? '') as String,
+    description: (j['description'] ?? '') as String,
+    technologies: (j['technologies'] ?? '') as String,
+    category: (j['category'] ?? 'general') as String,
+    featured: (j['featured'] ?? false) as bool,
+    images: (j['images'] ?? '') as String,
+    links: (j['links'] ?? '') as String,
+  );
 }
 
 class ProjectsService {
@@ -103,5 +103,11 @@ class ProjectsService {
 
   Future<void> delete(int id) async {
     await _api.delete('/api/projects/$id');
+  }
+
+  Future<String> share(int id) async {
+    final r = await _api.post('/api/projects/$id/share');
+    final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
+    return (j['share_url'] ?? '') as String;
   }
 }

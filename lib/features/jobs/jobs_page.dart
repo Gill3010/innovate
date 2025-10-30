@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import 'data/jobs_service.dart';
 import 'data/favorites_store.dart';
@@ -15,11 +16,14 @@ class _JobsPageState extends State<JobsPage> {
   final TextEditingController _locationCtrl = TextEditingController();
   bool _remoteOnly = false;
   int? _minSalary;
+  String _sort = 'relevance'; // relevance|date|salary
 
   late final JobsService _service;
   final FavoritesStore _store = FavoritesStore();
-  Future<List<JobItem>>? _future;
+  final ApiClient _api = ApiClient();
+  Future<JobsSearchResult>? _future;
   Set<String> _favorites = {};
+  int? _lastTotal;
 
   @override
   void initState() {
@@ -44,20 +48,23 @@ class _JobsPageState extends State<JobsPage> {
         location: loc,
         remote: _remoteOnly,
         minSalary: _minSalary,
+        sort: _sort,
       );
     });
     // Alerts: compare result count vs last saved count for this search key
-    final key = 'q=$q|loc=$loc|remote=$_remoteOnly|min=$_minSalary';
-    final results = await _future!;
+    final key = 'q=$q|loc=$loc|remote=$_remoteOnly|min=$_minSalary|sort=$_sort';
+    final result = await _future!;
+    _lastTotal = result.total;
     final last = await _store.loadLastCounts();
     final prev = last[key] ?? 0;
-    if (results.length > prev && prev != 0 && mounted) {
-      final diff = results.length - prev;
+    if (result.items.length > prev && prev != 0 && mounted) {
+      final diff = result.items.length - prev;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Hay $diff nuevas ofertas para esta búsqueda')),
       );
     }
-    await _store.saveLastCount(key, results.length);
+    await _store.saveLastCount(key, result.items.length);
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveSearch() async {
@@ -74,6 +81,23 @@ class _JobsPageState extends State<JobsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _apply(JobItem r) async {
+    try {
+      await _api.post('/api/jobs/track-click', body: {
+        'url': r.url,
+        'title': r.title,
+        'company': r.company,
+        'source': r.source ?? 'adzuna',
+      });
+    } catch (_) {}
+    final uri = Uri.tryParse(r.url);
+    if (uri != null) {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
   }
 
   @override
@@ -107,6 +131,15 @@ class _JobsPageState extends State<JobsPage> {
                   ),
                 ),
               ),
+              DropdownButton<String>(
+                value: _sort,
+                onChanged: (v) => setState(() => _sort = v ?? 'relevance'),
+                items: const [
+                  DropdownMenuItem(value: 'relevance', child: Text('Relevancia')),
+                  DropdownMenuItem(value: 'date', child: Text('Fecha')),
+                  DropdownMenuItem(value: 'salary', child: Text('Salario')),
+                ],
+              ),
               SizedBox(
                 width: 160,
                 child: TextField(
@@ -133,6 +166,11 @@ class _JobsPageState extends State<JobsPage> {
                 icon: const Icon(Icons.search),
                 label: const Text('Buscar'),
               ),
+              if (_lastTotal != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('Aprox ${_lastTotal} resultados'),
+                ),
               TextButton.icon(
                 onPressed: _saveSearch,
                 icon: const Icon(Icons.add_alert),
@@ -144,7 +182,7 @@ class _JobsPageState extends State<JobsPage> {
         Expanded(
           child: _future == null
               ? const Center(child: Text('Ingresa filtros y presiona Buscar'))
-              : FutureBuilder<List<JobItem>>(
+              : FutureBuilder<JobsSearchResult>(
                   future: _future,
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
@@ -153,7 +191,7 @@ class _JobsPageState extends State<JobsPage> {
                     if (snap.hasError) {
                       return Center(child: Text('Error: ${snap.error}'));
                     }
-                    final items = snap.data ?? const <JobItem>[];
+                    final items = snap.data?.items ?? const <JobItem>[];
                     if (items.isEmpty) {
                       return const Center(child: Text('Sin resultados'));
                     }
@@ -166,29 +204,34 @@ class _JobsPageState extends State<JobsPage> {
                         final key = _jobKey(r);
                         final isFav = _favorites.contains(key);
                         return ListTile(
-                          tileColor: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLowest,
+                          tileColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                           title: Text(r.title),
                           subtitle: Text('${r.company} • ${r.location}'),
-                          trailing: IconButton(
-                            icon: Icon(isFav ? Icons.star : Icons.star_border),
-                            onPressed: () async {
-                              await _store.toggleFavoriteKey(
-                                key,
-                                payload: {
-                                  'title': r.title,
-                                  'company': r.company,
-                                  'location': r.location,
-                                  'url': r.url,
-                                  'source': r.source ?? 'adzuna',
-                                },
-                              );
-                              _favorites = await _store.loadFavorites();
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                          onTap: () {},
+                          trailing: Wrap(spacing: 8, children: [
+                            IconButton(
+                              icon: Icon(isFav ? Icons.star : Icons.star_border),
+                              onPressed: () async {
+                                await _store.toggleFavoriteKey(
+                                  key,
+                                  payload: {
+                                    'title': r.title,
+                                    'company': r.company,
+                                    'location': r.location,
+                                    'url': r.url,
+                                    'source': r.source ?? 'adzuna',
+                                  },
+                                );
+                                _favorites = await _store.loadFavorites();
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                            IconButton(
+                              tooltip: 'Aplicar',
+                              icon: const Icon(Icons.open_in_new),
+                              onPressed: () => _apply(r),
+                            ),
+                          ]),
+                          onTap: () => _apply(r),
                         );
                       },
                     );

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import 'data/projects_service.dart';
 import '../auth/data/auth_store.dart';
@@ -23,6 +25,10 @@ class _PortfolioPageState extends State<PortfolioPage> {
     super.initState();
     _service = ProjectsService(ApiClient());
     _future = _load();
+    // Escucha cambios de sesión para mostrar/ocultar botones de dueño
+    AuthStore.instance.token.listen((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   Future<List<ProjectItem>> _load() {
@@ -54,6 +60,8 @@ class _PortfolioPageState extends State<PortfolioPage> {
         technologies: data.technologies,
         category: data.category,
         featured: data.featured,
+        images: data.imagesJson(),
+        links: data.linksJson(),
       );
       _refresh();
     } catch (e) {
@@ -79,6 +87,22 @@ class _PortfolioPageState extends State<PortfolioPage> {
             technologies: p.technologies,
             category: p.category,
             featured: p.featured,
+            images: () {
+              try {
+                final List a = (p.images.isNotEmpty) ? (jsonDecode(p.images) as List) : const [];
+                return a.map((e) => e.toString()).toList();
+              } catch (_) {
+                return <String>[];
+              }
+            }(),
+            links: () {
+              try {
+                final List a = (p.links.isNotEmpty) ? (jsonDecode(p.links) as List) : const [];
+                return a.map((e) => e.toString()).toList();
+              } catch (_) {
+                return <String>[];
+              }
+            }(),
           ),
         ),
       ),
@@ -92,6 +116,8 @@ class _PortfolioPageState extends State<PortfolioPage> {
         technologies: data.technologies,
         category: data.category,
         featured: data.featured,
+        images: data.imagesJson(),
+        links: data.linksJson(),
       );
       _refresh();
     } catch (e) {
@@ -132,6 +158,30 @@ class _PortfolioPageState extends State<PortfolioPage> {
     }
   }
 
+  Future<void> _share(ProjectItem p) async {
+    try {
+      final shareUrl = await _service.share(p.id);
+      if (!mounted) return;
+      final fullUrl = '${ApiClient.defaultBaseUrl}$shareUrl';
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Compartir proyecto'),
+          content: SelectableText(fullUrl),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al compartir: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -143,9 +193,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
         ? 2
         : 1;
 
-    final logged = AuthStore.instance.isLoggedIn;
-
-    return Stack(
+    return StreamBuilder<String?>(
+      stream: AuthStore.instance.token,
+      builder: (context, snap) {
+        final logged = snap.data != null;
+        return Stack(
       children: [
         Column(
           children: [
@@ -180,6 +232,15 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     onPressed: _refresh,
                     icon: const Icon(Icons.refresh),
                   ),
+                      if (logged)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: FilledButton.icon(
+                            onPressed: _create,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Nuevo'),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -217,6 +278,15 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final p = items[index];
+                      // Try to parse first image from JSON string
+                      String? thumbUrl;
+                      List<String> linkList = const [];
+                      try {
+                        final List imgs = (p.images.isNotEmpty) ? (jsonDecode(p.images) as List) : const [];
+                        if (imgs.isNotEmpty) thumbUrl = imgs.first?.toString();
+                        final List lnks = (p.links.isNotEmpty) ? (jsonDecode(p.links) as List) : const [];
+                        linkList = lnks.map((e) => e.toString()).toList(growable: false);
+                      } catch (_) {}
                       return Card(
                         elevation: 2,
                         child: Padding(
@@ -224,6 +294,23 @@ class _PortfolioPageState extends State<PortfolioPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (thumbUrl != null && thumbUrl!.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    height: 120,
+                                    width: double.infinity,
+                                    child: Image.network(
+                                      thumbUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        child: const Center(child: Icon(Icons.broken_image)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (thumbUrl != null) const SizedBox(height: 8),
                               Row(
                                 children: [
                                   Expanded(
@@ -234,7 +321,33 @@ class _PortfolioPageState extends State<PortfolioPage> {
                                       ).textTheme.titleMedium,
                                     ),
                                   ),
+                                  if (linkList.isNotEmpty)
+                                    PopupMenuButton<String>(
+                                      tooltip: 'Abrir enlace',
+                                      icon: const Icon(Icons.link),
+                                      itemBuilder: (context) => [
+                                        for (final l in linkList)
+                                          PopupMenuItem<String>(
+                                            value: l,
+                                            child: SizedBox(
+                                              width: 240,
+                                              child: Text(l, overflow: TextOverflow.ellipsis),
+                                            ),
+                                          ),
+                                      ],
+                                      onSelected: (l) async {
+                                        final uri = Uri.tryParse(l);
+                                        if (uri != null) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        }
+                                      },
+                                    ),
                                   if (logged) ...[
+                                    IconButton(
+                                      tooltip: 'Compartir',
+                                      icon: const Icon(Icons.share),
+                                      onPressed: () => _share(p),
+                                    ),
                                     IconButton(
                                       tooltip: 'Editar',
                                       icon: const Icon(Icons.edit),
@@ -284,17 +397,22 @@ class _PortfolioPageState extends State<PortfolioPage> {
             ),
           ],
         ),
-        if (logged)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: FloatingActionButton.extended(
-              onPressed: _create,
-              icon: const Icon(Icons.add),
-              label: const Text('Nuevo'),
-            ),
-          ),
+            if (logged)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: SafeArea(
+                  child: FloatingActionButton.extended(
+                    heroTag: 'newProjectFab',
+                    onPressed: _create,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nuevo'),
+                  ),
+                ),
+        ),
       ],
+    );
+      },
     );
   }
 }
