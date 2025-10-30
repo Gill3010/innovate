@@ -19,6 +19,7 @@ class PortfolioPage extends StatefulWidget {
 class _PortfolioPageState extends State<PortfolioPage> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _category = 'all';
+  bool _explore = false;
   late final ProjectsService _service;
   Future<List<ProjectItem>>? _future;
   String? _lastToken;
@@ -31,8 +32,20 @@ class _PortfolioPageState extends State<PortfolioPage> {
     _lastToken = AuthStore.instance.tokenValue;
   }
 
-  Future<List<ProjectItem>> _load() {
-    return _service.list(category: _category == 'all' ? null : _category);
+  Future<List<ProjectItem>> _load() async {
+    if (_explore) {
+      final res = await _service.listPublic(
+        page: 1,
+        perPage: 50,
+        category: _category == 'all' ? null : _category,
+      );
+      return res.items;
+    } else {
+      // Si no hay sesión iniciada, no traigas nada para "Mis proyectos"
+      final token = AuthStore.instance.tokenValue;
+      if (token == null || token.isEmpty) return <ProjectItem>[];
+      return _service.list(category: _category == 'all' ? null : _category);
+    }
   }
 
   void _refresh() {
@@ -293,9 +306,13 @@ class _PortfolioPageState extends State<PortfolioPage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width < 420 ? 260 : 360,
                     child: TextField(
                       controller: _searchCtrl,
                       decoration: const InputDecoration(
@@ -305,7 +322,6 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  const SizedBox(width: 12),
                   DropdownButton<String>(
                     value: _category,
                     onChanged: (v) {
@@ -317,6 +333,17 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       DropdownMenuItem(value: 'web', child: Text('Web')),
                       DropdownMenuItem(value: 'mobile', child: Text('Móvil')),
                     ],
+                  ),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('Mis proyectos')),
+                      ButtonSegment(value: true, label: Text('Explorar')),
+                    ],
+                    selected: {_explore},
+                    onSelectionChanged: (s) {
+                      _explore = s.first;
+                      _refresh();
+                    },
                   ),
                   IconButton(
                     onPressed: _refresh,
@@ -361,6 +388,11 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+                  if (!_explore && !logged) {
+                    return const Center(
+                      child: Text('Inicia sesión para ver tus proyectos'),
+                    );
+                  }
                   if (snap.hasError) {
                     return Center(
                       child: Text('Error al cargar: ${snap.error}'),
@@ -378,7 +410,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                   }
 
                   return GridView.builder(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       childAspectRatio: 4 / 3,

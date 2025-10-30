@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_req
 from flask_jwt_extended import exceptions as jwt_ex
 from backend.extensions import db, cache, limiter
 from backend.models import Project
+from sqlalchemy import or_
 import secrets
 
 projects_bp = Blueprint("projects", __name__)
@@ -210,3 +211,45 @@ def get_shared_portfolio(token: str):
         }
         for p in projects
     ])
+
+
+@projects_bp.get("/public")
+@limiter.limit("120/minute")
+def list_public_projects():
+    # Public explore endpoint with pagination and filters
+    page = max(int(request.args.get("page", 1)), 1)
+    per_page = min(max(int(request.args.get("per_page", 20)), 1), 50)
+    q = Project.query
+    category = request.args.get("category")
+    if category:
+        q = q.filter(Project.category == sanitize_str(category, 128))
+    term = request.args.get("q")
+    if term:
+        t = f"%{sanitize_str(term, 255)}%"
+        q = q.filter(or_(Project.title.ilike(t), Project.description.ilike(t)))
+    order = (request.args.get("order") or "new").lower()
+    if order == "old":
+        q = q.order_by(Project.created_at.asc())
+    else:
+        q = q.order_by(Project.created_at.desc())
+    total = q.count()
+    items = q.offset((page - 1) * per_page).limit(per_page).all()
+    return jsonify({
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "items": [
+            {
+                "id": p.id,
+                "user_id": p.user_id,
+                "title": p.title,
+                "description": p.description,
+                "technologies": p.technologies,
+                "images": p.images,
+                "links": p.links,
+                "category": p.category,
+                "featured": p.featured,
+            }
+            for p in items
+        ],
+    })

@@ -124,4 +124,44 @@ class ProjectsService {
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
     return (j['share_url'] ?? '') as String;
   }
+
+  Future<PublicListResult> listPublic({
+    int page = 1,
+    int perPage = 20,
+    String? q,
+    String? category,
+    String order = 'new',
+  }) async {
+    final query = <String, dynamic>{
+      'page': page,
+      'per_page': perPage,
+      'order': order,
+    };
+    if (q != null && q.isNotEmpty) query['q'] = q;
+    if (category != null && category.isNotEmpty) query['category'] = category;
+    final r = await _api.get('/api/projects/public', query: query);
+    final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
+    final List items = (j['items'] as List? ?? const []);
+    return PublicListResult(
+      page: (j['page'] as num).toInt(),
+      perPage: (j['per_page'] as num).toInt(),
+      total: (j['total'] as num).toInt(),
+      items: items
+          .map((e) => ProjectItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class PublicListResult {
+  PublicListResult({
+    required this.page,
+    required this.perPage,
+    required this.total,
+    required this.items,
+  });
+  final int page;
+  final int perPage;
+  final int total;
+  final List<ProjectItem> items;
 }
