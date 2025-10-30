@@ -16,7 +16,6 @@ def sanitize_str(value: str, max_len: int = 255) -> str:
 
 @projects_bp.get("")
 @limiter.limit("60/minute")
-@cache.cached(timeout=120, query_string=True)
 def list_projects():
     owner_filter = request.args.get("owner")  # "me" or user_id
     user_id = None
@@ -173,3 +172,41 @@ def get_shared_project(token: str):
         "category": p.category,
         "featured": p.featured,
     })
+
+
+@projects_bp.post("/portfolio/share")
+@jwt_required()
+@limiter.limit("10/minute")
+def share_portfolio():
+    from backend.models import User
+    user_id = int(get_jwt_identity())
+    user = User.query.get_or_404(user_id)
+    if not user.portfolio_share_token:
+        user.portfolio_share_token = secrets.token_urlsafe(16)
+        db.session.commit()
+        cache.clear()
+    return jsonify({
+        "share_token": user.portfolio_share_token,
+        "share_url": f"/api/projects/portfolio/{user.portfolio_share_token}"
+    })
+
+
+@projects_bp.get("/portfolio/<token>")
+@limiter.limit("60/minute")
+def get_shared_portfolio(token: str):
+    from backend.models import User
+    user = User.query.filter_by(portfolio_share_token=token).first_or_404()
+    projects = Project.query.filter_by(user_id=user.id).order_by(Project.created_at.desc()).all()
+    return jsonify([
+        {
+            "id": p.id,
+            "title": p.title,
+            "description": p.description,
+            "technologies": p.technologies,
+            "images": p.images,
+            "links": p.links,
+            "category": p.category,
+            "featured": p.featured,
+        }
+        for p in projects
+    ])

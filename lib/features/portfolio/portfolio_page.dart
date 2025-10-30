@@ -21,16 +21,14 @@ class _PortfolioPageState extends State<PortfolioPage> {
   String _category = 'all';
   late final ProjectsService _service;
   Future<List<ProjectItem>>? _future;
+  String? _lastToken;
 
   @override
   void initState() {
     super.initState();
     _service = ProjectsService(ApiClient());
     _future = _load();
-    // Escucha cambios de sesión para mostrar/ocultar botones de dueño
-    AuthStore.instance.token.listen((_) {
-      if (mounted) setState(() {});
-    });
+    _lastToken = AuthStore.instance.tokenValue;
   }
 
   Future<List<ProjectItem>> _load() {
@@ -213,6 +211,61 @@ class _PortfolioPageState extends State<PortfolioPage> {
     }
   }
 
+  Future<void> _sharePortfolio() async {
+    try {
+      final shareUrl = await _service.sharePortfolio();
+      if (!mounted) return;
+      final fullUrl = '${ApiClient.defaultBaseUrl}$shareUrl';
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Compartir mi portafolio'),
+          content: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Comparte todos tus proyectos con este enlace:'),
+                const SizedBox(height: 12),
+                SelectableText(fullUrl),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 180,
+                  height: 180,
+                  child: QrImageView(
+                    data: fullUrl,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: fullUrl));
+                if (context.mounted) Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Enlace copiado')),
+                  );
+                }
+              },
+              child: const Text('Copiar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al compartir: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -227,7 +280,13 @@ class _PortfolioPageState extends State<PortfolioPage> {
     return StreamBuilder<String?>(
       stream: AuthStore.instance.token,
       builder: (context, snap) {
-        final logged = snap.data != null;
+        final token = snap.data;
+        if (token != _lastToken) {
+          _lastToken = token;
+          // Refresca automáticamente al cambiar de sesión/usuario
+          _future = _load();
+        }
+        final logged = token != null;
         return Stack(
       children: [
         Column(
@@ -263,15 +322,35 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     onPressed: _refresh,
                     icon: const Icon(Icons.refresh),
                   ),
-                      if (logged)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: FilledButton.icon(
-                            onPressed: _create,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Nuevo'),
+                  if (logged)
+                    PopupMenuButton<String>(
+                      tooltip: 'Más opciones',
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (v) {
+                        if (v == 'share_portfolio') _sharePortfolio();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: 'share_portfolio',
+                          child: Row(
+                            children: [
+                              Icon(Icons.share),
+                              SizedBox(width: 8),
+                              Text('Compartir mi portafolio'),
+                            ],
                           ),
                         ),
+                      ],
+                    ),
+                  if (logged)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: FilledButton.icon(
+                        onPressed: _create,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Nuevo'),
+                      ),
+                    ),
                 ],
               ),
             ),

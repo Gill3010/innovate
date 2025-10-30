@@ -1,5 +1,6 @@
 import 'dart:convert';
 import '../../../core/api_client.dart';
+import '../../auth/data/auth_store.dart';
 
 class ProjectItem {
   ProjectItem({
@@ -40,6 +41,13 @@ class ProjectsService {
 
   Future<List<ProjectItem>> list({String? category, bool? featured}) async {
     final query = <String, dynamic>{};
+    // Force server to return only current owner's projects when authenticated
+    try {
+      final token = AuthStore.instance.tokenValue;
+      if (token != null && token.isNotEmpty) {
+        query['owner'] = 'me';
+      }
+    } catch (_) {}
     if (category != null && category.isNotEmpty) query['category'] = category;
     if (featured != null) query['featured'] = featured;
     final r = await _api.get('/api/projects', query: query);
@@ -107,6 +115,12 @@ class ProjectsService {
 
   Future<String> share(int id) async {
     final r = await _api.post('/api/projects/$id/share');
+    final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
+    return (j['share_url'] ?? '') as String;
+  }
+
+  Future<String> sharePortfolio() async {
+    final r = await _api.post('/api/projects/portfolio/share');
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
     return (j['share_url'] ?? '') as String;
   }
