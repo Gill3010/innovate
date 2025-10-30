@@ -384,7 +384,12 @@ class _PortfolioPageState extends State<PortfolioPage> {
               ),
             ),
             Expanded(
-              child: FutureBuilder<List<ProjectItem>>(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  _refresh();
+                  await Future.delayed(const Duration(milliseconds: 200));
+                },
+                child: FutureBuilder<List<ProjectItem>>(
                 future: _future,
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
@@ -537,6 +542,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     },
                   );
                 },
+              ),
               ),
             ),
           ],
