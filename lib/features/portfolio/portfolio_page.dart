@@ -315,9 +315,14 @@ class _PortfolioPageState extends State<PortfolioPage> {
                     width: MediaQuery.of(context).size.width < 420 ? 260 : 360,
                     child: TextField(
                       controller: _searchCtrl,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Buscar proyectos...',
-                        prefixIcon: Icon(Icons.search),
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          tooltip: 'Recargar',
+                          icon: const Icon(Icons.refresh),
+                          onPressed: _refresh,
+                        ),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -345,10 +350,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                       _refresh();
                     },
                   ),
-                  IconButton(
-                    onPressed: _refresh,
-                    icon: const Icon(Icons.refresh),
-                  ),
+                  // refresh también disponible como gesto pull-to-refresh abajo
                   if (logged)
                     PopupMenuButton<String>(
                       tooltip: 'Más opciones',
