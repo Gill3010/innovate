@@ -46,8 +46,9 @@ class PortfolioAppMenu extends StatelessWidget {
     try {
       final service = ProjectsService(ApiClient());
       final shareUrl = await service.sharePortfolio();
-      final fullUrl = '${ApiClient.defaultBaseUrl}$shareUrl';
+      // shareUrl is already absolute from service
       if (!context.mounted) return;
+      final fullUrl = shareUrl;
       await showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -106,8 +107,40 @@ class PortfolioAppMenu extends StatelessWidget {
   Future<void> _openPublicProfile(BuildContext context) async {
     try {
       final service = ProjectsService(ApiClient());
+      // Primero compartir el portafolio para asegurar que el token existe
       final shareUrl = await service.sharePortfolio();
-      final token = shareUrl.split('/').last;
+      // Extraer el token de la URL (puede ser absoluta o relativa)
+      String token = '';
+      try {
+        // Si es URL absoluta: https://.../share/pf/<token>
+        // Si es URL relativa: /share/pf/<token>
+        final uri = Uri.parse(shareUrl);
+        final pathSegments = uri.pathSegments;
+        // Buscar 'pf' y tomar el siguiente segmento (el token)
+        final pfIndex = pathSegments.indexOf('pf');
+        if (pfIndex >= 0 && pfIndex < pathSegments.length - 1) {
+          token = pathSegments[pfIndex + 1];
+        } else {
+          // Fallback: tomar el último segmento
+          token = pathSegments.isNotEmpty ? pathSegments.last : '';
+        }
+        // Limpiar posibles parámetros de query
+        if (token.contains('?')) {
+          token = token.split('?').first;
+        }
+      } catch (e) {
+        // Fallback simple si el parseo falla
+        final parts = shareUrl.split('/');
+        token = parts.last;
+        if (token.contains('?')) {
+          token = token.split('?').first;
+        }
+      }
+      
+      if (token.isEmpty) {
+        throw Exception('No se pudo extraer el token del enlace de compartir');
+      }
+      
       if (!context.mounted) return;
       Navigator.push(
         context,

@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para la colección de usuarios
+    match /users/{userId} {
+      // Los usuarios pueden leer su propio documento
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Los usuarios pueden leer documentos públicos si tienen portfolio_share_token
+      allow read: if resource.data.portfolio_share_token != null;
+      // Los usuarios pueden escribir en su propio documento cuando están autenticados
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Permitir lectura pública si hay un token de compartir (para portafolios públicos)
+      allow read: if request.query.limit <= 1 && 
+                     resource.data.portfolio_share_token == request.query.token;
+    }
+    
+    // Reglas para la colección de proyectos
+    match /projects/{projectId} {
+      // Los usuarios pueden leer sus propios proyectos
+      allow read: if request.auth != null && 
+                     resource.data.user_id == request.auth.uid;
+      // Los proyectos pueden ser leídos públicamente si tienen share_token (para compartir)
+      allow read: if resource.data.share_token != null;
+      // Los usuarios pueden escribir en sus propios proyectos
+      allow write: if request.auth != null && 
+                      resource.data.user_id == request.auth.uid;
+      // Permitir lectura pública si hay un token de compartir en la consulta
+      allow read: if request.query.limit <= 1 && 
+                     resource.data.share_token == request.query.token;
+    }
+    
+    // Reglas para otras colecciones (favorites, etc.)
+    match /favorites/{favoriteId} {
+      allow read, write: if request.auth != null && 
+                            resource.data.user_id == request.auth.uid;
+    }
+    
+    // Por defecto, denegar acceso
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

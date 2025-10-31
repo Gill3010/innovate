@@ -11,6 +11,7 @@ from backend.routes.upload import upload_bp
 from backend.routes.share import share_bp
 from backend.routes import users_bp
 from backend.config import get_config
+from backend.firebase_service import firebase_service
 
 
 def create_app() -> Flask:
@@ -23,6 +24,16 @@ def create_app() -> Flask:
     cache.init_app(app)
     cors.init_app(app, resources={r"/*": {"origins": app.config.get("CORS_ORIGINS", "*")}})
     limiter.init_app(app)
+    
+    # Inicializar Firebase si está habilitado
+    use_firebase = app.config.get("USE_FIREBASE", False)
+    if use_firebase:
+        try:
+            firebase_service.initialize(use_firebase=True)
+            print("Firebase inicializado correctamente")
+        except Exception as e:
+            print(f"Warning: No se pudo inicializar Firebase: {e}")
+            print("Continuando sin Firebase...")
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(projects_bp, url_prefix="/api/projects")
@@ -39,8 +50,13 @@ def create_app() -> Flask:
         return jsonify(status="ok"), 200
 
     with app.app_context():
-        if app.config.get("AUTO_CREATE_DB", False):
-            db.create_all()
+        try:
+            if app.config.get("AUTO_CREATE_DB", False):
+                db.create_all()
+        except Exception as e:
+            # Log error but don't fail startup (DB might not be accessible during init)
+            import logging
+            logging.warning(f"Could not create database tables: {e}")
 
     return app
 

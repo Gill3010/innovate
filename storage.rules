@@ -1,0 +1,31 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Reglas para la carpeta de uploads
+    match /uploads/{allPaths=**} {
+      // Permitir lectura pública de imágenes
+      allow read: if true;
+      // Solo usuarios autenticados pueden subir imágenes
+      allow write: if request.auth != null;
+      // Validar que sea una imagen
+      allow write: if request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                     request.resource.contentType.matches('image/.*');
+    }
+    
+    // Reglas para avatares
+    match /avatars/{allPaths=**} {
+      // Permitir lectura pública
+      allow read: if true;
+      // Solo el usuario propietario puede subir su avatar
+      allow write: if request.auth != null;
+      allow write: if request.resource.size < 2 * 1024 * 1024 && // Max 2MB
+                     request.resource.contentType.matches('image/.*');
+    }
+    
+    // Por defecto, denegar acceso
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

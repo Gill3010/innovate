@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'firebase_options.dart';
+// import 'core/environment.dart';
 import 'features/portfolio/portfolio_page.dart';
 import 'features/jobs/jobs_page.dart';
 import 'features/ai/widgets/career_chat_sheet.dart';
@@ -8,7 +11,21 @@ import 'features/auth/ui/profile_page.dart';
 import 'features/auth/data/auth_store.dart';
 import 'features/portfolio/widgets/portfolio_app_menu.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // No inicializar Firebase en web - todo se maneja a través del backend
+  // Firebase solo se necesita en apps móviles nativas si se usan características como push notifications
+  // if (Environment.useFirebase && !kIsWeb) {
+  //   try {
+  //     await Firebase.initializeApp(
+  //       options: DefaultFirebaseOptions.currentPlatform,
+  //     );
+  //   } catch (e) {
+  //     debugPrint('Error inicializando Firebase: $e');
+  //   }
+  // }
+  
   runApp(const InnovateApp());
 }
 

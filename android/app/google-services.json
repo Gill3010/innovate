@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "711833617633",
+    "project_id": "innova-proyectos-jobs",
+    "storage_bucket": "innova-proyectos-jobs.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711833617633:android:03afe55458fc91871ba3a0",
+        "android_client_info": {
+          "package_name": "com.example.innovate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBD5ZOUIK7-2ACJizVznETjPLCyXRuj2Jw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

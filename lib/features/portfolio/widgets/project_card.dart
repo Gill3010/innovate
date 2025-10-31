@@ -5,7 +5,7 @@ import '../data/projects_service.dart';
 import '../project_detail_page.dart';
 import '../../../core/api_client.dart';
 
-class ProjectCard extends StatelessWidget {
+class ProjectCard extends StatefulWidget {
   const ProjectCard({
     super.key,
     required this.project,
@@ -24,39 +24,53 @@ class ProjectCard extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  State<ProjectCard> createState() => _ProjectCardState();
+}
+
+class _ProjectCardState extends State<ProjectCard> {
+  late final ApiClient _apiClient;
+  late final String _baseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiClient = ApiClient();
+    _baseUrl = _apiClient.baseUrl;
+  }
+
+  @override
   Widget build(BuildContext context) {
     String? thumbUrl;
     List<String> linkList = const [];
 
     try {
-      final List imgs = (project.images.isNotEmpty)
-          ? (jsonDecode(project.images) as List)
+      final List imgs = (widget.project.images.isNotEmpty)
+          ? (jsonDecode(widget.project.images) as List)
           : const [];
-      if (imgs.isNotEmpty) {
-        final imgPath = imgs.first?.toString() ?? '';
+      // Filtrar solo URLs válidas
+      final validImgs = imgs
+          .map((e) => e.toString())
+          .where((url) => url.isNotEmpty && 
+                         (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')))
+          .toList();
+      if (validImgs.isNotEmpty) {
+        final imgPath = validImgs.first;
         if (imgPath.isNotEmpty) {
-          // Si la URL ya es absoluta, verificar si tiene el dominio correcto
-          // Si tiene 127.0.0.1 y estamos en Android, reemplazarlo con 10.0.2.2
+          // Si la URL ya es absoluta, usar tal cual (especialmente URLs de Firebase Storage)
           if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
-            final baseUrl = ApiClient.defaultBaseUrl;
-            // Si la URL tiene 127.0.0.1 pero necesitamos 10.0.2.2 (Android)
-            // o viceversa, reemplazar el dominio
-            if (imgPath.contains('://127.0.0.1:') && baseUrl.contains('10.0.2.2')) {
-              thumbUrl = imgPath.replaceFirst('://127.0.0.1:', '://10.0.2.2:');
-            } else if (imgPath.contains('://10.0.2.2:') && baseUrl.contains('127.0.0.1')) {
-              thumbUrl = imgPath.replaceFirst('://10.0.2.2:', '://127.0.0.1:');
-            } else {
-              thumbUrl = imgPath;
-            }
+            thumbUrl = imgPath;
+          } else if (imgPath.contains('://127.0.0.1:') && _baseUrl.contains('10.0.2.2')) {
+            // Solo para desarrollo local en Android
+            thumbUrl = imgPath.replaceFirst('://127.0.0.1:', '://10.0.2.2:');
           } else {
             // URL relativa, convertir a absoluta
-            thumbUrl = '${ApiClient.defaultBaseUrl}$imgPath';
+            thumbUrl = '$_baseUrl$imgPath';
           }
         }
       }
 
-      final List lnks = (project.links.isNotEmpty)
-          ? (jsonDecode(project.links) as List)
+      final List lnks = (widget.project.links.isNotEmpty)
+          ? (jsonDecode(widget.project.links) as List)
           : const [];
       linkList = lnks.map((e) => e.toString()).toList(growable: false);
     } catch (_) {}
@@ -99,24 +113,24 @@ class ProjectCard extends StatelessWidget {
               _ProjectThumbnail(thumbUrl: thumbUrl),
             if (thumbUrl != null) const SizedBox(height: 5),
             _ProjectHeader(
-              project: project,
+              project: widget.project,
               linkList: linkList,
-              isLoggedIn: isLoggedIn,
-              isExploreMode: isExploreMode,
-              onShare: onShare,
-              onEdit: onEdit,
-              onDelete: onDelete,
+              isLoggedIn: widget.isLoggedIn,
+              isExploreMode: widget.isExploreMode,
+              onShare: widget.onShare,
+              onEdit: widget.onEdit,
+              onDelete: widget.onDelete,
             ),
             const SizedBox(height: 3),
-            _ProjectInfo(project: project),
+            _ProjectInfo(project: widget.project),
             const SizedBox(height: 3),
             Align(
               alignment: Alignment.bottomRight,
-              child: _ProjectDetailButton(projectId: project.id),
+              child: _ProjectDetailButton(projectId: widget.project.id),
             ),
           ],
         ),
-      ),
+        ),
       ),
     );
   }
@@ -263,7 +277,7 @@ class _ProjectInfo extends StatelessWidget {
 class _ProjectDetailButton extends StatelessWidget {
   const _ProjectDetailButton({required this.projectId});
 
-  final int projectId;
+  final String projectId;
 
   @override
   Widget build(BuildContext context) {

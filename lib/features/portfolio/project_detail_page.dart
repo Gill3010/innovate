@@ -6,7 +6,7 @@ import 'data/projects_service.dart';
 
 class ProjectDetailPage extends StatefulWidget {
   const ProjectDetailPage({super.key, required this.projectId});
-  final int projectId;
+  final String projectId;
 
   @override
   State<ProjectDetailPage> createState() => _ProjectDetailPageState();
@@ -44,21 +44,16 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
               .toList();
           final links = _parseJsonArray(p.links);
           final imagesRaw = _parseJsonArray(p.images);
-          final baseUrl = ApiClient.defaultBaseUrl;
-          // Convertir URLs relativas a absolutas y corregir dominios incorrectos
+          final apiClient = ApiClient();
+          final baseUrl = apiClient.baseUrl;
+          // Convertir URLs relativas a absolutas, pero mantener URLs absolutas tal cual
           final images = imagesRaw.map((img) {
             if (img.startsWith('http://') || img.startsWith('https://')) {
-              // Corregir dominio si es necesario
-              if (img.contains('://127.0.0.1:') &&
-                  baseUrl.contains('10.0.2.2')) {
-                return img.replaceFirst('://127.0.0.1:', '://10.0.2.2:');
-              } else if (img.contains('://10.0.2.2:') &&
-                  baseUrl.contains('127.0.0.1')) {
-                return img.replaceFirst('://10.0.2.2:', '://127.0.0.1:');
-              }
+              // URL ya es absoluta (probablemente de Firebase Storage), usar tal cual
               return img;
             }
-            return '${ApiClient.defaultBaseUrl}$img';
+            // URL relativa, convertir a absoluta
+            return '$baseUrl$img';
           }).toList();
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -132,7 +127,15 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     if (raw.isEmpty) return [];
     try {
       final List a = jsonDecode(raw) as List;
-      return a.map((e) => '$e').toList();
+      // Filtrar solo URLs válidas (que empiecen con http:// o https://)
+      return a
+          .map((e) => '$e')
+          .where(
+            (url) =>
+                url.isNotEmpty &&
+                (url.startsWith('http://') || url.startsWith('https://')),
+          )
+          .toList();
     } catch (_) {
       return [];
     }

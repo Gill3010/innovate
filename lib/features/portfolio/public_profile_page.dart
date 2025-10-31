@@ -24,10 +24,17 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
   }
 
   Future<(Map<String, dynamic>, List<ProjectItem>)> _load() async {
-    // El backend expone /api/users/profile/<token> y /api/projects/portfolio/<token>
-    final profile = await _service.getPublicProfile(widget.token);
-    final projects = await _service.listPortfolioByToken(widget.token);
-    return (profile, projects);
+    try {
+      // El backend expone /api/users/profile/<token> y /api/projects/portfolio/<token>
+      final profile = await _service.getPublicProfile(widget.token);
+      final projects = await _service.listPortfolioByToken(widget.token);
+      return (profile, projects);
+    } catch (e) {
+      // Log del error para debugging
+      print('Error cargando perfil público: $e');
+      print('Token usado: ${widget.token}');
+      rethrow;
+    }
   }
 
   @override
@@ -81,6 +88,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final p = items[index];
+                    final apiClient = ApiClient();
+                    final baseUrl = apiClient.baseUrl;
                     String? thumbUrl;
                     List<String> linkList = const [];
                     try {
@@ -90,27 +99,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       if (imgs.isNotEmpty) {
                         final imgPath = imgs.first?.toString() ?? '';
                         if (imgPath.isNotEmpty) {
-                          final baseUrl = ApiClient.defaultBaseUrl;
+                          // Si la URL ya es absoluta (Firebase Storage), usar tal cual
                           if (imgPath.startsWith('http://') ||
                               imgPath.startsWith('https://')) {
-                            // Corregir dominio si es necesario
-                            if (imgPath.contains('://127.0.0.1:') &&
-                                baseUrl.contains('10.0.2.2')) {
-                              thumbUrl = imgPath.replaceFirst(
-                                '://127.0.0.1:',
-                                '://10.0.2.2:',
-                              );
-                            } else if (imgPath.contains('://10.0.2.2:') &&
-                                baseUrl.contains('127.0.0.1')) {
-                              thumbUrl = imgPath.replaceFirst(
-                                '://10.0.2.2:',
-                                '://127.0.0.1:',
-                              );
-                            } else {
-                              thumbUrl = imgPath;
-                            }
+                            thumbUrl = imgPath;
                           } else {
-                            thumbUrl = '${ApiClient.defaultBaseUrl}$imgPath';
+                            // URL relativa, convertir a absoluta
+                            thumbUrl = '$baseUrl$imgPath';
                           }
                         }
                       }

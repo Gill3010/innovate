@@ -18,7 +18,7 @@ class UserProfile {
     this.createdAt,
   });
 
-  final int id;
+  final String id; // String para compatibilidad con Firebase (puede ser string o int convertido)
   final String email;
   final String name;
   final String bio;
@@ -33,7 +33,7 @@ class UserProfile {
   final String? createdAt;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        id: json['id'] as int,
+        id: json['id']?.toString() ?? '', // Convertir int o string a string
         email: json['email'] as String,
         name: json['name'] as String? ?? '',
         bio: json['bio'] as String? ?? '',

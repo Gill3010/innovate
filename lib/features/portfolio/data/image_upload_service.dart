@@ -11,21 +11,45 @@ class ImageUploadService {
   ImageUploadService(this._api);
 
   Future<List<String>> pickAndUploadFromFiles() async {
+    print('📁 Abriendo selector de archivos...');
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       type: FileType.image,
     );
-    if (result == null || result.files.isEmpty) return [];
+    print('📁 Archivos seleccionados: ${result?.files.length ?? 0}');
+    if (result == null || result.files.isEmpty) {
+      print('📁 No se seleccionaron archivos');
+      return [];
+    }
 
     final uploadedUrls = <String>[];
     for (final f in result.files) {
-      final url = await _uploadFile(
-        bytes: f.bytes,
-        path: f.path,
-        filename: f.name,
-      );
-      if (url != null) uploadedUrls.add(url);
+      print('⬆️ Subiendo: ${f.name}');
+      try {
+        // En web, solo bytes está disponible (path NO se puede acceder)
+        if (f.bytes == null) {
+          print('❌ No hay bytes disponibles para ${f.name}');
+          continue;
+        }
+        
+        print('📦 Bytes disponibles: ${f.bytes!.length} bytes');
+        
+        final url = await _uploadFile(
+          bytes: f.bytes,
+          path: null,  // En web, path no está disponible
+          filename: f.name,
+        );
+        if (url != null) {
+          print('✅ URL recibida: $url');
+          uploadedUrls.add(url);
+        } else {
+          print('❌ Error: no se recibió URL para ${f.name}');
+        }
+      } catch (e) {
+        print('❌ Error procesando archivo ${f.name}: $e');
+      }
     }
+    print('📦 Total URLs: ${uploadedUrls.length}');
     return uploadedUrls;
   }
 
@@ -54,19 +78,34 @@ class ImageUploadService {
     String? path,
     String? filename,
   }) async {
-    if (bytes == null && path == null) return null;
+    print('📎 _uploadFile llamado - bytes: ${bytes != null}, path: ${path != null}, filename: $filename');
+    
+    if (bytes == null && path == null) {
+      print('❌ No hay bytes ni path');
+      return null;
+    }
 
     final req = http.MultipartRequest(
       'POST',
       Uri.parse('${_api.baseUrl}/api/image'),
     );
 
-    if (bytes != null) {
-      req.files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
-    } else if (path != null) {
-      req.files.add(await http.MultipartFile.fromPath('file', path));
+    try {
+      if (bytes != null && bytes.isNotEmpty) {
+        print('📦 Usando bytes (${bytes.length} bytes)');
+        req.files.add(
+          http.MultipartFile.fromBytes('file', bytes, filename: filename ?? 'image.jpg'),
+        );
+      } else if (path != null) {
+        print('📦 Usando path: $path');
+        req.files.add(await http.MultipartFile.fromPath('file', path));
+      } else {
+        print('❌ bytes está vacío');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error preparando archivo: $e');
+      return null;
     }
 
     final token = AuthStore.instance.tokenValue;
@@ -75,17 +114,29 @@ class ImageUploadService {
     }
 
     try {
+      print('🌐 Enviando archivo al servidor...');
       final streamed = await req.send();
       final resp = await http.Response.fromStream(streamed);
+      print('🌐 Status code: ${resp.statusCode}');
+      print('🌐 Response body: ${resp.body}');
 
       if (resp.statusCode >= 200 && resp.statusCode < 300) {
         final url = (jsonDecode(resp.body)['url'] as String?) ?? '';
+        print('🌐 URL extraída: $url');
         if (url.isNotEmpty) {
-          return '${_api.baseUrl}$url';
+          // Si la URL ya es absoluta (Firebase Storage), usar tal cual
+          // Si es relativa (almacenamiento local), convertir a absoluta
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            print('🌐 URL absoluta detectada');
+            return url;
+          }
+          final fullUrl = '${_api.baseUrl}$url';
+          print('🌐 URL relativa convertida: $fullUrl');
+          return fullUrl;
         }
       }
-    } catch (_) {
-      // Ignore upload errors for individual files
+    } catch (e) {
+      print('❌ Error subiendo archivo: $e');
     }
     return null;
   }

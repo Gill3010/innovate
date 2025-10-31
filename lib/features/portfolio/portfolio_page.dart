@@ -178,8 +178,8 @@ class _PortfolioPageState extends State<PortfolioPage> {
     try {
       final shareUrl = await _service.share(p.id);
       if (!mounted) return;
-      final fullUrl = '${ApiClient.defaultBaseUrl}$shareUrl';
-      await ShareDialogs.showShareProjectDialog(context, fullUrl);
+      // shareUrl is already absolute from service
+      await ShareDialogs.showShareProjectDialog(context, shareUrl);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

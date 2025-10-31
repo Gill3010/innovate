@@ -61,8 +61,11 @@ class _ProjectFormState extends State<ProjectForm> {
   }
 
   Future<void> _pickAndUploadImages() async {
+    print('📸 Iniciando selección de imágenes...');
     final urls = await _uploadService.pickAndUploadFromFiles();
+    print('📸 URLs recibidas: $urls');
     _images.addAll(urls);
+    print('📸 Total de imágenes: ${_images.length}');
     if (mounted) setState(() {});
   }
 

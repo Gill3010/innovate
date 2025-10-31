@@ -14,7 +14,7 @@ class ProjectItem {
     this.links = '',
   });
 
-  final int id;
+  final String id; // String para compatibilidad con Firebase (puede ser string o int convertido)
   final String title;
   final String description;
   final String technologies;
@@ -24,14 +24,32 @@ class ProjectItem {
   final String links; // JSON array string
 
   factory ProjectItem.fromJson(Map<String, dynamic> j) => ProjectItem(
-    id: j['id'] as int,
+    id: j['id']?.toString() ?? '', // Convertir int o string a string
     title: (j['title'] ?? '') as String,
     description: (j['description'] ?? '') as String,
     technologies: (j['technologies'] ?? '') as String,
     category: (j['category'] ?? 'general') as String,
     featured: (j['featured'] ?? false) as bool,
-    images: (j['images'] ?? '') as String,
-    links: (j['links'] ?? '') as String,
+    // Manejar images como string o array (desde Firestore puede venir como array)
+    images: () {
+      final img = j['images'];
+      if (img == null) return '';
+      if (img is List) {
+        // Si viene como array, convertirlo a string JSON
+        return jsonEncode(img);
+      }
+      return img.toString();
+    }(),
+    // Manejar links como string o array
+    links: () {
+      final lnk = j['links'];
+      if (lnk == null) return '';
+      if (lnk is List) {
+        // Si viene como array, convertirlo a string JSON
+        return jsonEncode(lnk);
+      }
+      return lnk.toString();
+    }(),
   );
 }
 
@@ -57,13 +75,13 @@ class ProjectsService {
         .toList();
   }
 
-  Future<ProjectItem> getById(int id) async {
+  Future<ProjectItem> getById(String id) async {
     final r = await _api.get('/api/projects/$id');
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
     return ProjectItem.fromJson(j);
   }
 
-  Future<int> create({
+  Future<String> create({
     required String title,
     String description = '',
     String technologies = '',
@@ -85,11 +103,11 @@ class ProjectsService {
       },
     );
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-    return (j['id'] as num).toInt();
+    return j['id']?.toString() ?? '';
   }
 
   Future<void> update(
-    int id, {
+    String id, {
     String? title,
     String? description,
     String? technologies,
@@ -109,20 +127,34 @@ class ProjectsService {
     await _api.put('/api/projects/$id', body: body);
   }
 
-  Future<void> delete(int id) async {
+  Future<void> delete(String id) async {
     await _api.delete('/api/projects/$id');
   }
 
-  Future<String> share(int id) async {
+  Future<String> share(String id) async {
     final r = await _api.post('/api/projects/$id/share');
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-    return (j['share_url'] ?? '') as String;
+    // Prefer share_page_url (HTML page) over share_url (JSON API)
+    final relativeUrl = (j['share_page_url'] ?? j['share_url'] ?? '') as String;
+    // Build absolute URL using the API's base URL
+    if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
+      return relativeUrl; // Already absolute
+    }
+    // Convert relative to absolute using the same baseUrl as API calls
+    return '${_api.baseUrl}$relativeUrl';
   }
 
   Future<String> sharePortfolio() async {
     final r = await _api.post('/api/projects/portfolio/share');
     final Map<String, dynamic> j = jsonDecode(r.body) as Map<String, dynamic>;
-    return (j['share_url'] ?? '') as String;
+    // Prefer share_page_url (HTML page) over share_url (JSON API)
+    final relativeUrl = (j['share_page_url'] ?? j['share_url'] ?? '') as String;
+    // Build absolute URL using the API's base URL
+    if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
+      return relativeUrl; // Already absolute
+    }
+    // Convert relative to absolute using the same baseUrl as API calls
+    return '${_api.baseUrl}$relativeUrl';
   }
 
   Future<Map<String, dynamic>> getPublicProfile(String token) async {

@@ -25,6 +25,12 @@ class BaseConfig:
 
     AUTO_CREATE_DB = os.getenv("AUTO_CREATE_DB", "false").lower() == "true"
 
+    # Firebase configuration
+    USE_FIREBASE = os.getenv("USE_FIREBASE", "false").lower() == "true"
+    FIREBASE_STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET", "")
+    FIRESTORE_DATABASE = os.getenv("FIRESTORE_DATABASE", "innovate")
+    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
@@ -32,6 +38,8 @@ class DevelopmentConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
+    # En producción, usar Firebase por defecto
+    USE_FIREBASE = os.getenv("USE_FIREBASE", "true").lower() == "true"
 
 
 def get_config():
