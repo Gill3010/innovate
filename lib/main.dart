@@ -4,6 +4,7 @@ import 'features/portfolio/portfolio_page.dart';
 import 'features/jobs/jobs_page.dart';
 import 'features/ai/widgets/career_chat_sheet.dart';
 import 'features/auth/ui/auth_page.dart';
+import 'features/auth/ui/profile_page.dart';
 import 'features/auth/data/auth_store.dart';
 import 'features/portfolio/widgets/portfolio_app_menu.dart';
 
@@ -122,11 +123,20 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _openAuth() async {
-    final changed = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AuthPage()),
-    );
-    if (changed == true && mounted) setState(() {});
+    final logged = AuthStore.instance.isLoggedIn;
+    if (logged) {
+      final changed = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+      );
+      if (changed == true && mounted) setState(() {});
+    } else {
+      final changed = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthPage()),
+      );
+      if (changed == true && mounted) setState(() {});
+    }
   }
 
   @override
@@ -172,9 +182,9 @@ class _HomeShellState extends State<HomeShell> {
         actions: [
           if (_index == 0 && logged) const PortfolioAppMenu(),
           IconButton(
-            tooltip: logged ? 'Cuenta (sesión activa)' : 'Iniciar sesión',
+            tooltip: logged ? 'Mi perfil' : 'Iniciar sesión',
             onPressed: _openAuth,
-            icon: Icon(logged ? Icons.verified_user : Icons.person_outline),
+            icon: Icon(logged ? Icons.person : Icons.person_outline),
           ),
           IconButton(
             tooltip: 'Tema',

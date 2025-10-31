@@ -8,8 +8,19 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(255))
+    # Campos de perfil adicionales
+    bio = db.Column(db.Text, default="")
+    title = db.Column(db.String(255), default="")  # Título profesional (ej: "Full Stack Developer")
+    location = db.Column(db.String(255), default="")
+    avatar_url = db.Column(db.String(512), default="")
+    phone = db.Column(db.String(64), default="")
+    linkedin_url = db.Column(db.String(512), default="")
+    github_url = db.Column(db.String(512), default="")
+    website_url = db.Column(db.String(512), default="")
+    # Tokens y fechas
     portfolio_share_token = db.Column(db.String(32), unique=True, nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Project(db.Model):
