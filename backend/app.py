@@ -8,6 +8,7 @@ from backend.routes.jobs import jobs_bp
 from backend.routes.ai import ai_bp
 from backend.routes.favorites import favorites_bp
 from backend.routes.upload import upload_bp
+from backend.routes.share import share_bp
 from backend.routes import users_bp
 from backend.config import get_config
 
@@ -30,6 +31,7 @@ def create_app() -> Flask:
     app.register_blueprint(favorites_bp, url_prefix="/api/favorites")
     app.register_blueprint(upload_bp, url_prefix="/api")
     app.register_blueprint(users_bp, url_prefix="/api/users")
+    app.register_blueprint(share_bp, url_prefix="/share")
 
     @app.get("/api/health")
     @limiter.exempt

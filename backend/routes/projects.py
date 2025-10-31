@@ -1,5 +1,5 @@
 """Projects blueprint - aggregates all project-related routes."""
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended import exceptions as jwt_ex
 from sqlalchemy import or_
@@ -168,7 +168,8 @@ def share_project(project_id: int):
         cache.clear()
     return jsonify({
         "share_token": p.share_token,
-        "share_url": f"/api/projects/shared/{p.share_token}"
+        "share_url": f"/api/projects/shared/{p.share_token}",
+        "share_page_url": f"/share/p/{p.share_token}"
     })
 
 
@@ -176,6 +177,11 @@ def share_project(project_id: int):
 @limiter.limit("60/minute")
 def get_shared_project(token: str):
     """Get a project by its share token."""
+    # If the client is a browser (requests HTML), redirect to public page
+    accept = (request.headers.get("accept") or "").lower()
+    wants_html = "text/html" in accept or request.args.get("view") == "1"
+    if wants_html:
+        return redirect(f"/share/p/{token}", code=302)
     p = Project.query.filter_by(share_token=token).first_or_404()
     return jsonify(project_to_dict(p))
 
@@ -193,7 +199,8 @@ def share_portfolio():
         cache.clear()
     return jsonify({
         "share_token": user.portfolio_share_token,
-        "share_url": f"/api/projects/portfolio/{user.portfolio_share_token}"
+        "share_url": f"/api/projects/portfolio/{user.portfolio_share_token}",
+        "share_page_url": f"/share/pf/{user.portfolio_share_token}"
     })
 
 
@@ -201,6 +208,11 @@ def share_portfolio():
 @limiter.limit("60/minute")
 def get_shared_portfolio(token: str):
     """Get all projects for a user by their portfolio share token."""
+    # If the client is a browser (requests HTML), redirect to public page
+    accept = (request.headers.get("accept") or "").lower()
+    wants_html = "text/html" in accept or request.args.get("view") == "1"
+    if wants_html:
+        return redirect(f"/share/pf/{token}", code=302)
     user = User.query.filter_by(portfolio_share_token=token).first_or_404()
     projects = Project.query.filter_by(user_id=user.id).order_by(
         Project.created_at.desc()

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ vm.title }}</title>
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:title" content="{{ vm.title }}" />
+  <meta property="og:description" content="{{ vm.description[:180] }}" />
+  {% if cover %}<meta property="og:image" content="{{ cover }}" />{% endif %}
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; margin: 0; background: #f9fafb; }
+    .container { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .card { background: var(--card, rgba(255,255,255,0.9)); border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    h1 { margin: 0 0 12px; font-size: 28px; }
+    .muted { color: #6b7280; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 820px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .media { aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: #0f172a; display: grid; place-items: center; }
+    .media img { width: 100%; height: 100%; object-fit: cover; }
+    .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: 12px; margin-right: 8px; margin-bottom: 8px; }
+    .section { margin-top: 16px; }
+    a.btn { display:inline-block; padding:10px 14px; border-radius:10px; background:#111827; color:white; text-decoration:none; }
+    a.btn.secondary { background: #6b7280; }
+    .links a { display:block; margin-bottom:8px; word-break: break-all; }
+    .back-link { margin-bottom: 16px; }
+    .image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+    .image-gallery .media { aspect-ratio: 4/3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      {% if portfolio_token %}
+      <div class="back-link">
+        <a class="btn secondary" href="/share/pf/{{ portfolio_token }}">← Volver al portafolio</a>
+      </div>
+      {% endif %}
+      <div class="grid">
+        <div>
+          <h1>{{ vm.title }}</h1>
+          <div class="muted">Categoría: {{ vm.category }}</div>
+          <div class="section">
+            <p>{{ vm.description }}</p>
+          </div>
+          {% if vm.technologies %}
+          <div class="section">
+            {% for t in vm.technologies %}
+              <span class="pill">{{ t }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if vm.links %}
+          <div class="section links">
+            {% for l in vm.links %}
+              <a class="btn" href="{{ l }}" target="_blank" rel="noopener">Abrir enlace</a>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div>
+          <div class="media">
+            {% if cover %}
+              <img src="{{ cover }}" alt="cover" />
+            {% else %}
+              <svg width="64" height="64" fill="white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h5v6h7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm9-1.414L18.414 9H13V3.586z"/></svg>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if vm.images|length > 1 %}
+      <div class="section">
+        <h3 style="margin-bottom: 12px;">Galería de imágenes</h3>
+        <div class="image-gallery">
+          {% for img in vm.images %}
+          <div class="media">
+            <img src="{{ img }}" alt="Imagen del proyecto" />
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
+
+

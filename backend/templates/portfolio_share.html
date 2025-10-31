@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ vm.owner_name }} · Portafolio</title>
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:title" content="{{ vm.owner_name }} · Portafolio" />
+  <meta property="og:description" content="{{ (vm.bio or vm.title)[:180] }}" />
+  {% if cover %}<meta property="og:image" content="{{ cover }}" />{% endif %}
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif; margin: 0; }
+    .container { max-width: 1040px; margin: 0 auto; padding: 24px; }
+    .header { display: grid; grid-template-columns: 72px 1fr; gap: 16px; align-items: center; margin-bottom: 16px; }
+    .avatar { width:72px; height:72px; border-radius: 50%; object-fit: cover; background:#0f172a; }
+    .muted { color: #6b7280; }
+    .card { background: var(--card, rgba(255,255,255,0.9)); border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 840px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .project { display: grid; grid-template-rows: 180px auto; gap: 12px; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 12px; }
+    .media { border-radius: 10px; overflow: hidden; background: #0f172a; display: grid; place-items: center; }
+    .media img { width: 100%; height: 100%; object-fit: cover; }
+    .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-size: 12px; margin-right: 8px; }
+    .links a { margin-right: 12px; }
+    a.btn { display:inline-block; padding:8px 12px; border-radius:10px; background:#111827; color:white; text-decoration:none; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        {% if vm.avatar %}
+          <img class="avatar" src="{{ vm.avatar }}" alt="avatar" />
+        {% else %}
+          <div class="avatar"></div>
+        {% endif %}
+        <div>
+          <h1 style="margin:0; font-size: 28px;">{{ vm.owner_name }}</h1>
+          {% if vm.title %}<div class="muted">{{ vm.title }}</div>{% endif %}
+          {% if vm.bio %}<p style="margin-top: 8px;">{{ vm.bio }}</p>{% endif %}
+          <div class="links" style="margin-top:8px;">
+            {% if vm.links.linkedin %}<a class="btn" href="{{ vm.links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+            {% if vm.links.github %}<a class="btn" href="{{ vm.links.github }}" target="_blank" rel="noopener">GitHub</a>{% endif %}
+            {% if vm.links.website %}<a class="btn" href="{{ vm.links.website }}" target="_blank" rel="noopener">Website</a>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <h2 style="margin: 16px 0;">Proyectos</h2>
+      <div class="grid">
+        {% for p in vm.projects %}
+        <div class="project">
+          <div class="media">
+            {% if p.cover %}
+              <img src="{{ p.cover }}" alt="cover" />
+            {% else %}
+              <svg width="48" height="48" fill="white" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h5v6h7v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm9-1.414L18.414 9H13V3.586z"/></svg>
+            {% endif %}
+          </div>
+          <div>
+            <div style="display:flex; justify-content: space-between; align-items:center; gap: 8px;">
+              <h3 style="margin:0;">{{ p.title }}</h3>
+              {% if p.category %}<span class="pill">{{ p.category }}</span>{% endif %}
+            </div>
+            {% if p.description %}<p class="muted" style="margin-top:6px;">{{ p.description[:160] }}</p>{% endif %}
+            {% if p.token %}
+              <a class="btn" href="/share/p/{{ p.token }}" target="_self">Ver proyecto</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
