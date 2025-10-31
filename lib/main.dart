@@ -9,6 +9,8 @@ import 'features/ai/widgets/career_chat_sheet.dart';
 import 'features/auth/ui/auth_page.dart';
 import 'features/auth/ui/profile_page.dart';
 import 'features/auth/data/auth_store.dart';
+import 'features/auth/data/user_service.dart' as user_data;
+import 'core/api_client.dart';
 import 'features/portfolio/widgets/portfolio_app_menu.dart';
 
 void main() async {
@@ -127,6 +129,46 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  user_data.UserProfile? _userProfile;
+  bool _loadingProfile = false;
+  bool _avatarError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+    // Escuchar cambios en el estado de autenticación
+    AuthStore.instance.token.listen((_) {
+      _loadProfile();
+    });
+  }
+
+  Future<void> _loadProfile() async {
+    if (!AuthStore.instance.isLoggedIn) {
+      if (mounted) setState(() => _userProfile = null);
+      return;
+    }
+
+    setState(() => _loadingProfile = true);
+    try {
+      final service = user_data.UserService(ApiClient());
+      final profile = await service.getProfile();
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+          _loadingProfile = false;
+          _avatarError = false; // Reset error cuando se carga nuevo perfil
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userProfile = null;
+          _loadingProfile = false;
+        });
+      }
+    }
+  }
 
   void _openAiChat() {
     showModalBottomSheet(
@@ -146,13 +188,19 @@ class _HomeShellState extends State<HomeShell> {
         context,
         MaterialPageRoute(builder: (_) => const ProfilePage()),
       );
-      if (changed == true && mounted) setState(() {});
+      if (changed == true && mounted) {
+        setState(() {}); // Recargar perfil cuando regrese
+        _loadProfile();
+      }
     } else {
       final changed = await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const AuthPage()),
       );
-      if (changed == true && mounted) setState(() {});
+      if (changed == true && mounted) {
+        setState(() {});
+        _loadProfile();
+      }
     }
   }
 
@@ -198,11 +246,49 @@ class _HomeShellState extends State<HomeShell> {
             : null,
         actions: [
           if (_index == 0 && logged) const PortfolioAppMenu(),
-          IconButton(
-            tooltip: logged ? 'Mi perfil' : 'Iniciar sesión',
-            onPressed: _openAuth,
-            icon: Icon(logged ? Icons.person : Icons.person_outline),
-          ),
+          // Botón de perfil: mostrar avatar si está disponible, sino ícono
+          logged && 
+                  _userProfile != null && 
+                  _userProfile!.avatarUrl.isNotEmpty &&
+                  !_avatarError
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Tooltip(
+                    message: 'Mi perfil',
+                    child: InkWell(
+                      onTap: _openAuth,
+                      borderRadius: BorderRadius.circular(20),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundImage: NetworkImage(_userProfile!.avatarUrl),
+                        onBackgroundImageError: (_, __) {
+                          // Si hay error cargando la imagen, mostrar ícono
+                          if (mounted && !_avatarError) {
+                            setState(() => _avatarError = true);
+                          }
+                        },
+                        child: _loadingProfile
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  tooltip: logged ? 'Mi perfil' : 'Iniciar sesión',
+                  onPressed: _openAuth,
+                  icon: logged && _loadingProfile
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(logged ? Icons.person : Icons.person_outline),
+                ),
           IconButton(
             tooltip: 'Tema',
             onPressed: widget.onToggleTheme,

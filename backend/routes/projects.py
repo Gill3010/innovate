@@ -67,18 +67,62 @@ def create_project():
     else:
         # Guardar en SQLite/PostgreSQL (comportamiento original)
         user_id = int(user_id_str)
+        # Debug: ver qué llega en images
+        images_raw = data.get("images", "")
+        print(f"DEBUG create_project - images recibido: {images_raw}, tipo: {type(images_raw)}")
+        
+        # Asegurar que images sea un string JSON válido
+        images_str = ""
+        if images_raw:
+            if isinstance(images_raw, str):
+                # Verificar que sea JSON válido
+                try:
+                    json.loads(images_raw)  # Validar que sea JSON
+                    images_str = images_raw
+                except (json.JSONDecodeError, TypeError):
+                    # Si no es JSON válido, intentar convertirlo
+                    print(f"DEBUG: images no es JSON válido, intentando convertir: {images_raw}")
+                    images_str = json.dumps([images_raw]) if images_raw else "[]"
+            elif isinstance(images_raw, list):
+                # Si viene como lista, convertir a JSON string
+                images_str = json.dumps(images_raw)
+            else:
+                images_str = json.dumps([str(images_raw)]) if images_raw else "[]"
+        else:
+            images_str = "[]"
+        
+        print(f"DEBUG create_project - images final: {images_str}")
+        
+        # Similar para links
+        links_raw = data.get("links", "")
+        links_str = ""
+        if links_raw:
+            if isinstance(links_raw, str):
+                try:
+                    json.loads(links_raw)
+                    links_str = links_raw
+                except (json.JSONDecodeError, TypeError):
+                    links_str = json.dumps([links_raw]) if links_raw else "[]"
+            elif isinstance(links_raw, list):
+                links_str = json.dumps(links_raw)
+            else:
+                links_str = json.dumps([str(links_raw)]) if links_raw else "[]"
+        else:
+            links_str = "[]"
+        
         p = Project(
             user_id=user_id,
             title=title,
             description=data.get("description", ""),
             technologies=sanitize_str(data.get("technologies", ""), 512),
-            images=data.get("images", ""),
-            links=data.get("links", ""),
+            images=images_str,
+            links=links_str,
             category=sanitize_str(data.get("category", "general"), 128),
             featured=bool(data.get("featured", False)),
         )
         db.session.add(p)
         db.session.commit()
+        print(f"DEBUG create_project - Proyecto guardado con ID: {p.id}, images: {p.images}")
         cache.clear()
         return jsonify({"id": p.id}), 201
 

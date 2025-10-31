@@ -35,11 +35,19 @@ class ApiClient {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
     
-    // In release mode, use production URL if configured
+    // In release mode (production)
     if (kReleaseMode) {
+      // Check for explicit production URL
       const prodUrl = String.fromEnvironment('PROD_API_URL');
       if (prodUrl.isNotEmpty) return prodUrl;
-      // If no production URL is set, fail fast in release
+      
+      // In web release mode, use the production Cloud Run backend URL
+      if (kIsWeb) {
+        // Production backend URL (Cloud Run)
+        return 'https://innova-backend-zkniivwjuq-uc.a.run.app';
+      }
+      
+      // For mobile release builds, fail if no URL is configured
       throw Exception('Production API URL not configured. Build with --dart-define=API_BASE_URL=<your-url>');
     }
     
@@ -57,6 +65,15 @@ class ApiClient {
   static Future<String> get defaultBaseUrl async {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
+    
+    // In release mode web, use production URL
+    if (kReleaseMode && kIsWeb) {
+      const prodUrl = String.fromEnvironment('PROD_API_URL');
+      if (prodUrl.isNotEmpty) return prodUrl;
+      return 'https://innova-backend-zkniivwjuq-uc.a.run.app';
+    }
+    
+    // Development mode
     if (kIsWeb) return 'http://127.0.0.1:8000';
     
     try {

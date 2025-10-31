@@ -46,3 +46,20 @@ app.*.map.json
 .env
 .env.backup
 .env.example
+
+# Backend local development files
+backend/app.db
+backend/app.db-journal
+backend/uploads/
+*.db
+
+# Python virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Firebase local emulator and cache
+.firebase/
+*.cache
+.firebase/**/*.cache

@@ -12,7 +12,15 @@ _client = None
 def _client_lazy():
     global _client
     if _client is None:
-        _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY no está configurada")
+        # Inicializar sin proxies para evitar conflictos
+        _client = OpenAI(
+            api_key=api_key,
+            timeout=60.0,
+            max_retries=2
+        )
     return _client
 
 
