@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import '../../../core/api_client.dart';
-import '../../auth/data/auth_store.dart';
+import '../data/image_upload_service.dart';
+import 'image_picker_dialog.dart';
 
 class ProjectFormData {
   ProjectFormData({
@@ -44,13 +42,14 @@ class _ProjectFormState extends State<ProjectForm> {
   late final TextEditingController _tech;
   String _category = 'general';
   bool _featured = false;
-  final ApiClient _api = ApiClient();
+  late final ImageUploadService _uploadService;
   final List<String> _images = [];
   final List<String> _links = [];
 
   @override
   void initState() {
     super.initState();
+    _uploadService = ImageUploadService(ApiClient());
     final i = widget.initial ?? ProjectFormData();
     _title = TextEditingController(text: i.title);
     _desc = TextEditingController(text: i.description);
@@ -62,100 +61,27 @@ class _ProjectFormState extends State<ProjectForm> {
   }
 
   Future<void> _pickAndUploadImages() async {
-    final result = await FilePicker.platform.pickFiles(allowMultiple: true, type: FileType.image);
-    if (result == null || result.files.isEmpty) return;
-    for (final f in result.files) {
-      final bytes = f.bytes;
-      final path = f.path;
-      if (bytes == null && path == null) continue;
-      final req = http.MultipartRequest('POST', Uri.parse('${_api.baseUrl}/api/image'));
-      if (bytes != null) {
-        req.files.add(http.MultipartFile.fromBytes('file', bytes, filename: f.name));
-      } else if (path != null) {
-        req.files.add(await http.MultipartFile.fromPath('file', path));
-      }
-      final token = AuthStore.instance.tokenValue;
-      if (token != null && token.isNotEmpty) {
-        req.headers['Authorization'] = 'Bearer $token';
-      }
-      final streamed = await req.send();
-      final resp = await http.Response.fromStream(streamed);
-      if (resp.statusCode >= 200 && resp.statusCode < 300) {
-        final url = (jsonDecode(resp.body)['url'] as String?) ?? '';
-        if (url.isNotEmpty) _images.add('${_api.baseUrl}$url');
-      }
-    }
+    final urls = await _uploadService.pickAndUploadFromFiles();
+    _images.addAll(urls);
     if (mounted) setState(() {});
   }
 
   Future<void> _pickFromGalleryOrCamera() async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Galería (multi)'),
-              onTap: () => Navigator.pop(context, 'gallery'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Cámara'),
-              onTap: () => Navigator.pop(context, 'camera'),
-            ),
-          ],
-        ),
-      ),
-    );
+    final action = await ImagePickerDialog.showPickerOptions(context);
     if (action == null) return;
-    final picker = ImagePicker();
+
     if (action == 'gallery') {
-      final files = await picker.pickMultiImage();
-      for (final x in files) {
-        final req = http.MultipartRequest('POST', Uri.parse('${_api.baseUrl}/api/image'));
-        req.files.add(await http.MultipartFile.fromPath('file', x.path));
-        final token = AuthStore.instance.tokenValue;
-        if (token != null && token.isNotEmpty) req.headers['Authorization'] = 'Bearer $token';
-        final streamed = await req.send();
-        final resp = await http.Response.fromStream(streamed);
-        if (resp.statusCode >= 200 && resp.statusCode < 300) {
-          final url = (jsonDecode(resp.body)['url'] as String?) ?? '';
-          if (url.isNotEmpty) _images.add('${_api.baseUrl}$url');
-        }
-      }
+      final urls = await _uploadService.pickAndUploadFromGallery();
+      _images.addAll(urls);
     } else {
-      final x = await picker.pickImage(source: ImageSource.camera);
-      if (x != null) {
-        final req = http.MultipartRequest('POST', Uri.parse('${_api.baseUrl}/api/image'));
-        req.files.add(await http.MultipartFile.fromPath('file', x.path));
-        final token = AuthStore.instance.tokenValue;
-        if (token != null && token.isNotEmpty) req.headers['Authorization'] = 'Bearer $token';
-        final streamed = await req.send();
-        final resp = await http.Response.fromStream(streamed);
-        if (resp.statusCode >= 200 && resp.statusCode < 300) {
-          final url = (jsonDecode(resp.body)['url'] as String?) ?? '';
-          if (url.isNotEmpty) _images.add('${_api.baseUrl}$url');
-        }
-      }
+      final url = await _uploadService.pickAndUploadFromCamera();
+      if (url != null) _images.add(url);
     }
     if (mounted) setState(() {});
   }
 
   void _addLink() async {
-    final ctrl = TextEditingController();
-    final added = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Agregar link'),
-        content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'https://...')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('Agregar')),
-        ],
-      ),
-    );
+    final added = await ImagePickerDialog.showAddLinkDialog(context);
     if (added != null && added.isNotEmpty) {
       _links.add(added);
       setState(() {});
