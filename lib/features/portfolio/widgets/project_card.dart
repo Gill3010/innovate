@@ -41,6 +41,7 @@ class ProjectCard extends StatelessWidget {
 
     return Card(
       elevation: 2,
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Column(

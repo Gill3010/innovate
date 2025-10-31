@@ -11,22 +11,25 @@ class ShareDialogs {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Compartir proyecto'),
-        content: SizedBox(
-          width: 320,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SelectableText(fullUrl),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: 180,
-                height: 180,
-                child: QrImageView(
-                  data: fullUrl,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
+        contentPadding: const EdgeInsets.all(16),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SelectableText(fullUrl),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: QrImageView(
+                    data: fullUrl,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -59,24 +62,27 @@ class ShareDialogs {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Compartir mi portafolio'),
-        content: SizedBox(
-          width: 320,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Comparte todos tus proyectos con este enlace:'),
-              const SizedBox(height: 12),
-              SelectableText(fullUrl),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: 180,
-                height: 180,
-                child: QrImageView(
-                  data: fullUrl,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
+        contentPadding: const EdgeInsets.all(16),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Comparte todos tus proyectos con este enlace:'),
+                const SizedBox(height: 12),
+                SelectableText(fullUrl),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: QrImageView(
+                    data: fullUrl,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [

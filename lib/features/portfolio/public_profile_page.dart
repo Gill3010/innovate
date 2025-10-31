@@ -83,6 +83,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       } catch (_) {}
                       return Card(
                         elevation: 2,
+                        clipBehavior: Clip.antiAlias,
                         child: Padding(
                           padding: const EdgeInsets.all(10),
                           child: Column(
