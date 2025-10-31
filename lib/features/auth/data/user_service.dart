@@ -66,9 +66,7 @@ class UserService {
   final ApiClient _api;
 
   Future<UserProfile> getProfile() async {
-    print('DEBUG: Calling /api/users/me with baseUrl: ${_api.baseUrl}');
     final r = await _api.get('/api/users/me');
-    print('DEBUG: Response status: ${r.statusCode}, body: ${r.body.substring(0, 100)}');
     final json = jsonDecode(r.body) as Map<String, dynamic>;
     return UserProfile.fromJson(json);
   }

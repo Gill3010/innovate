@@ -12,7 +12,6 @@ users_bp = Blueprint("users", __name__)
 def get_my_profile():
     """Get current user's profile"""
     user_id = int(get_jwt_identity())
-    print(f"DEBUG: Looking for user_id={user_id}")
     user = User.query.get_or_404(user_id)
     return jsonify(_user_to_dict(user))
 
