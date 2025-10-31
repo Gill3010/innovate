@@ -1,8 +1,9 @@
 import os
+import logging
 from flask import Blueprint, request, jsonify
 from backend.extensions import limiter, cache
-from pydantic import BaseModel, Field
-from openai import OpenAI
+from pydantic import BaseModel, Field, ValidationError
+from openai import OpenAI, APIError, AuthenticationError
 
 ai_bp = Blueprint("ai", __name__)
 _client = None
@@ -99,17 +100,36 @@ class CareerChatInput(BaseModel):
 @ai_bp.post("/career-chat")
 @limiter.limit("60/minute")
 def career_chat():
-    payload = request.get_json() or {}
-    data = CareerChatInput(**payload)
-    client = _client_lazy()
-    system = "Eres un asesor laboral experto. Responde en español, breve y accionable."
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": data.message},
-        ],
-        temperature=0.6,
-    )
-    text = resp.choices[0].message.content
-    return jsonify({"reply": text})
+    try:
+        payload = request.get_json() or {}
+        data = CareerChatInput(**payload)
+        
+        # Verificar que la API key esté configurada
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key or api_key.strip() == "":
+            return jsonify({"error": "OPENAI_API_KEY no está configurada. Por favor, configura la variable de entorno OPENAI_API_KEY."}), 500
+        
+        client = _client_lazy()
+        system = "Eres un asesor laboral experto. Responde en español, breve y accionable."
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": data.message},
+            ],
+            temperature=0.6,
+        )
+        text = resp.choices[0].message.content
+        return jsonify({"reply": text})
+    except ValidationError as e:
+        logging.error(f"Validation error in career-chat: {e}")
+        return jsonify({"error": f"Error en los datos: {str(e)}"}), 400
+    except AuthenticationError as e:
+        logging.error(f"OpenAI authentication error: {e}")
+        return jsonify({"error": "Error de autenticación con OpenAI. Verifica que tu OPENAI_API_KEY sea válida."}), 401
+    except APIError as e:
+        logging.error(f"OpenAI API error: {e}")
+        return jsonify({"error": f"Error en la API de OpenAI: {str(e)}"}), 500
+    except Exception as e:
+        logging.exception(f"Unexpected error in career-chat: {e}")
+        return jsonify({"error": f"Error inesperado: {str(e)}"}), 500

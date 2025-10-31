@@ -47,6 +47,7 @@ class JobsService {
     bool? remote,
     int? minSalary,
     String? sort, // relevance|date|salary
+    String? country, // Country code (mx, ar, br, etc.)
   }) async {
     final query = <String, dynamic>{'with_meta': true};
     if (q != null && q.isNotEmpty) query['q'] = q;
@@ -54,6 +55,7 @@ class JobsService {
     if (remote != null) query['remote'] = remote;
     if (minSalary != null) query['min_salary'] = minSalary;
     if (sort != null && sort.isNotEmpty) query['sort'] = sort;
+    if (country != null && country.isNotEmpty) query['country'] = country;
     final r = await _api.get('/api/jobs/search', query: query);
     final decoded = jsonDecode(r.body);
     if (decoded is List) {

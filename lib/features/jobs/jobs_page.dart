@@ -17,6 +17,7 @@ class _JobsPageState extends State<JobsPage> {
   bool _remoteOnly = false;
   int? _minSalary;
   String _sort = 'relevance'; // relevance|date|salary
+  String? _selectedCountry; // Country code for LATAM
 
   late final JobsService _service;
   final FavoritesStore _store = FavoritesStore();
@@ -49,6 +50,7 @@ class _JobsPageState extends State<JobsPage> {
         remote: _remoteOnly,
         minSalary: _minSalary,
         sort: _sort,
+        country: _selectedCountry,
       );
     });
     // Alerts: compare result count vs last saved count for this search key
@@ -130,6 +132,16 @@ class _JobsPageState extends State<JobsPage> {
                     prefixIcon: Icon(Icons.place),
                   ),
                 ),
+              ),
+              DropdownButton<String>(
+                value: _selectedCountry,
+                hint: const Text('País'),
+                onChanged: (v) => setState(() => _selectedCountry = v),
+                items: const [
+                  DropdownMenuItem(value: 'mx', child: Text('🇲🇽 México')),
+                  DropdownMenuItem(value: 'br', child: Text('🇧🇷 Brasil')),
+                  // Otros países de LATAM aún no disponibles en Adzuna con estas credenciales
+                ],
               ),
               DropdownButton<String>(
                 value: _sort,

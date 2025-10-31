@@ -37,9 +37,38 @@ class _CareerChatSheetState extends State<CareerChatSheet> {
       });
     } catch (e) {
       if (!mounted) return;
+      
+      // Mostrar mensaje de error más claro
+      String errorMsg = 'Error al conectar con el asesor IA';
+      final errorStr = e.toString();
+      
+      if (errorStr.contains('OPENAI_API_KEY') || errorStr.contains('no está configurada')) {
+        errorMsg = 'La API de OpenAI no está configurada. Por favor, configura OPENAI_API_KEY en el backend.';
+      } else if (errorStr.contains('autenticación') || errorStr.contains('API key')) {
+        errorMsg = 'Error de autenticación con OpenAI. Verifica tu API key.';
+      } else if (errorStr.contains('HTTP')) {
+        errorMsg = 'Error de conexión con el servidor. Verifica que el backend esté corriendo.';
+      } else {
+        errorMsg = 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error IA: $e')),
+        SnackBar(
+          content: Text(errorMsg),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Cerrar',
+            onPressed: () {},
+          ),
+        ),
       );
+      
+      // Remover el mensaje del usuario si falló
+      setState(() {
+        if (_messages.isNotEmpty && _messages.last.role == 'user') {
+          _messages.removeLast();
+        }
+      });
     } finally {
       if (mounted) setState(() => _sending = false);
     }
