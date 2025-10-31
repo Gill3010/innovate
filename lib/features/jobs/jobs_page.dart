@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_client.dart';
 import 'data/jobs_service.dart';
@@ -25,12 +26,62 @@ class _JobsPageState extends State<JobsPage> {
   Future<JobsSearchResult>? _future;
   Set<String> _favorites = {};
   int? _lastTotal;
+  List<Map<String, String>> _countries = [];
+  Future<void>? _countriesFuture;
 
   @override
   void initState() {
     super.initState();
     _service = JobsService(ApiClient());
     _initFavs();
+    _countriesFuture = _loadCountries();
+  }
+
+  Future<void> _loadCountries() async {
+    try {
+      final resp = await _api.get('/api/jobs/countries');
+      if (resp.statusCode == 200) {
+        final List data = jsonDecode(resp.body) as List;
+        if (mounted) {
+          setState(() {
+            _countries = data
+                .map((e) => {
+                      'code': (e as Map<String, dynamic>)['code'] as String,
+                      'name': (e as Map<String, dynamic>)['name'] as String,
+                    })
+                .toList();
+            // Selección por defecto: Panamá si existe
+            final pa = _countries.firstWhere(
+              (c) => c['code'] == 'pa',
+              orElse: () => _countries.isNotEmpty ? _countries.first : {'code': ''},
+            );
+            _selectedCountry ??= pa['code'];
+          });
+        }
+      }
+    } catch (e) {
+      // Fallback to hardcoded list if API fails
+      if (mounted) {
+        setState(() {
+          _countries = [
+            {'code': 'mx', 'name': 'Mexico'},
+            {'code': 'co', 'name': 'Colombia'},
+            {'code': 'pa', 'name': 'Panama'},
+            {'code': 'us', 'name': 'United States'},
+          ];
+          _selectedCountry ??= 'pa';
+        });
+      }
+    }
+  }
+
+  String _flagOf(String code) {
+    // Convert ISO country code to emoji flag; fallback empty string
+    if (code.length != 2) return '';
+    final base = 0x1F1E6;
+    final a = code.toUpperCase().codeUnitAt(0) - 65 + base;
+    final b = code.toUpperCase().codeUnitAt(1) - 65 + base;
+    return String.fromCharCode(a) + String.fromCharCode(b);
   }
 
   Future<void> _initFavs() async {
@@ -85,6 +136,19 @@ class _JobsPageState extends State<JobsPage> {
     );
   }
 
+  void _clearFilters() {
+    setState(() {
+      _queryCtrl.clear();
+      _locationCtrl.clear();
+      _remoteOnly = false;
+      _minSalary = null;
+      _sort = 'relevance';
+      _selectedCountry = null;
+      _future = null; // clears results list
+      _lastTotal = null;
+    });
+  }
+
   Future<void> _apply(JobItem r) async {
     try {
       await _api.post('/api/jobs/track-click', body: {
@@ -133,15 +197,29 @@ class _JobsPageState extends State<JobsPage> {
                   ),
                 ),
               ),
-              DropdownButton<String>(
-                value: _selectedCountry,
-                hint: const Text('País'),
-                onChanged: (v) => setState(() => _selectedCountry = v),
-                items: const [
-                  DropdownMenuItem(value: 'mx', child: Text('🇲🇽 México')),
-                  DropdownMenuItem(value: 'br', child: Text('🇧🇷 Brasil')),
-                  // Otros países de LATAM aún no disponibles en Adzuna con estas credenciales
-                ],
+              FutureBuilder<void>(
+                future: _countriesFuture,
+                builder: (context, snapshot) {
+                  if (_countries.isEmpty) {
+                    return DropdownButton<String>(
+                      value: _selectedCountry,
+                      hint: const Text('País'),
+                      items: const [],
+                      onChanged: null,
+                    );
+                  }
+                  return DropdownButton<String>(
+                    value: _selectedCountry,
+                    hint: const Text('País'),
+                    onChanged: (v) => setState(() => _selectedCountry = v),
+                    items: _countries
+                        .map((c) => DropdownMenuItem(
+                              value: c['code'],
+                              child: Text('${_flagOf(c['code']!)} ${c['name'] ?? c['code']!}'),
+                            ))
+                        .toList(),
+                  );
+                },
               ),
               DropdownButton<String>(
                 value: _sort,
@@ -177,6 +255,11 @@ class _JobsPageState extends State<JobsPage> {
                 onPressed: _search,
                 icon: const Icon(Icons.search),
                 label: const Text('Buscar'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _clearFilters,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Limpiar'),
               ),
               if (_lastTotal != null)
                 Padding(
