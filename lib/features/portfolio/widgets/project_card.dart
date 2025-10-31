@@ -46,7 +46,6 @@ class ProjectCard extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
             if (thumbUrl != null && thumbUrl.isNotEmpty)
               _ProjectThumbnail(thumbUrl: thumbUrl),
@@ -63,7 +62,10 @@ class ProjectCard extends StatelessWidget {
             const SizedBox(height: 4),
             _ProjectInfo(project: project),
             const SizedBox(height: 4),
-            _ProjectDetailButton(projectId: project.id),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: _ProjectDetailButton(projectId: project.id),
+            ),
           ],
         ),
       ),
