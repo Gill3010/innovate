@@ -42,14 +42,14 @@ class ProjectCard extends StatelessWidget {
     return Card(
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (thumbUrl != null && thumbUrl.isNotEmpty)
               _ProjectThumbnail(thumbUrl: thumbUrl),
-            if (thumbUrl != null) const SizedBox(height: 8),
+            if (thumbUrl != null) const SizedBox(height: 6),
             _ProjectHeader(
               project: project,
               linkList: linkList,
@@ -59,9 +59,9 @@ class ProjectCard extends StatelessWidget {
               onEdit: onEdit,
               onDelete: onDelete,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             _ProjectInfo(project: project),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             _ProjectDetailButton(projectId: project.id),
           ],
         ),
@@ -196,7 +196,7 @@ class _ProjectInfo extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Text(
           'Tecnologías: ${project.technologies}',
           style: Theme.of(context).textTheme.bodyMedium,
@@ -215,18 +215,24 @@ class _ProjectDetailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomRight,
-      child: TextButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProjectDetailPage(projectId: projectId),
-            ),
-          );
-        },
-        child: const Text('Ver detalle'),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProjectDetailPage(projectId: projectId),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        child: Text(
+          'Ver detalle',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }

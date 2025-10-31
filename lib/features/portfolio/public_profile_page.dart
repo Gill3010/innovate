@@ -66,7 +66,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    childAspectRatio: 4 / 3,
+                    childAspectRatio: 0.75,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
                   ),
@@ -84,35 +84,43 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       return Card(
                         elevation: 2,
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (thumbUrl != null && thumbUrl!.isNotEmpty)
+                              if (thumbUrl != null && thumbUrl.isNotEmpty)
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: SizedBox(
-                                    height: 120,
+                                    height: 100,
                                     width: double.infinity,
-                                    child: Image.network(thumbUrl!, fit: BoxFit.cover),
+                                    child: Image.network(thumbUrl, fit: BoxFit.cover),
                                   ),
                                 ),
-                              const SizedBox(height: 8),
-                              Text(p.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleMedium),
-                              const Spacer(),
+                              if (thumbUrl != null) const SizedBox(height: 6),
+                              Text(
+                                p.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
                               if (linkList.isNotEmpty)
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: TextButton.icon(
-                                    onPressed: () async {
-                                      final uri = Uri.tryParse(linkList.first);
-                                      if (uri != null) {
-                                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                      }
-                                    },
-                                    icon: const Icon(Icons.link),
-                                    label: const Text('Abrir'),
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.tryParse(linkList.first);
+                                    if (uri != null) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.link, size: 14),
+                                      SizedBox(width: 4),
+                                      Text('Abrir', style: TextStyle(fontSize: 12)),
+                                    ],
                                   ),
                                 ),
                             ],

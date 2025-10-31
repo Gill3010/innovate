@@ -273,7 +273,7 @@ class _PortfolioPageState extends State<PortfolioPage> {
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
-                                childAspectRatio: 4 / 3,
+                                childAspectRatio: 0.75,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                               ),
