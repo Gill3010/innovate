@@ -43,17 +43,34 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
               .where((s) => s.isNotEmpty)
               .toList();
           final links = _parseJsonArray(p.links);
-          final images = _parseJsonArray(p.images);
+          final imagesRaw = _parseJsonArray(p.images);
+          final baseUrl = ApiClient.defaultBaseUrl;
+          // Convertir URLs relativas a absolutas y corregir dominios incorrectos
+          final images = imagesRaw.map((img) {
+            if (img.startsWith('http://') || img.startsWith('https://')) {
+              // Corregir dominio si es necesario
+              if (img.contains('://127.0.0.1:') &&
+                  baseUrl.contains('10.0.2.2')) {
+                return img.replaceFirst('://127.0.0.1:', '://10.0.2.2:');
+              } else if (img.contains('://10.0.2.2:') &&
+                  baseUrl.contains('127.0.0.1')) {
+                return img.replaceFirst('://10.0.2.2:', '://127.0.0.1:');
+              }
+              return img;
+            }
+            return '${ApiClient.defaultBaseUrl}$img';
+          }).toList();
           return Padding(
             padding: const EdgeInsets.all(16),
             child: ListView(
               children: [
                 Text(p.title, style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 8),
-                Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final t in techChips)
-                    Chip(label: Text(t)),
-                ]),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [for (final t in techChips) Chip(label: Text(t))],
+                ),
                 const SizedBox(height: 16),
                 Text(p.description),
                 const SizedBox(height: 16),
@@ -72,8 +89,12 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                             images[i],
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              child: const Center(child: Icon(Icons.broken_image)),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              child: const Center(
+                                child: Icon(Icons.broken_image),
+                              ),
                             ),
                           ),
                         ),
@@ -81,18 +102,24 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
                     ),
                   ),
                 const SizedBox(height: 16),
-                Wrap(spacing: 8, children: [
-                  for (final l in links)
-                    FilledButton.tonal(
-                      onPressed: () async {
-                        final uri = Uri.tryParse(l);
-                        if (uri != null) {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        }
-                      },
-                      child: Text(l),
-                    ),
-                ])
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final l in links)
+                      FilledButton.tonal(
+                        onPressed: () async {
+                          final uri = Uri.tryParse(l);
+                          if (uri != null) {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        },
+                        child: Text(l),
+                      ),
+                  ],
+                ),
               ],
             ),
           );
@@ -111,4 +138,3 @@ class _ProjectDetailPageState extends State<ProjectDetailPage> {
     }
   }
 }
-

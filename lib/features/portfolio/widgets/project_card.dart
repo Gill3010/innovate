@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/projects_service.dart';
 import '../project_detail_page.dart';
+import '../../../core/api_client.dart';
 
 class ProjectCard extends StatelessWidget {
   const ProjectCard({
@@ -31,7 +32,28 @@ class ProjectCard extends StatelessWidget {
       final List imgs = (project.images.isNotEmpty)
           ? (jsonDecode(project.images) as List)
           : const [];
-      if (imgs.isNotEmpty) thumbUrl = imgs.first?.toString();
+      if (imgs.isNotEmpty) {
+        final imgPath = imgs.first?.toString() ?? '';
+        if (imgPath.isNotEmpty) {
+          // Si la URL ya es absoluta, verificar si tiene el dominio correcto
+          // Si tiene 127.0.0.1 y estamos en Android, reemplazarlo con 10.0.2.2
+          if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
+            final baseUrl = ApiClient.defaultBaseUrl;
+            // Si la URL tiene 127.0.0.1 pero necesitamos 10.0.2.2 (Android)
+            // o viceversa, reemplazar el dominio
+            if (imgPath.contains('://127.0.0.1:') && baseUrl.contains('10.0.2.2')) {
+              thumbUrl = imgPath.replaceFirst('://127.0.0.1:', '://10.0.2.2:');
+            } else if (imgPath.contains('://10.0.2.2:') && baseUrl.contains('127.0.0.1')) {
+              thumbUrl = imgPath.replaceFirst('://10.0.2.2:', '://127.0.0.1:');
+            } else {
+              thumbUrl = imgPath;
+            }
+          } else {
+            // URL relativa, convertir a absoluta
+            thumbUrl = '${ApiClient.defaultBaseUrl}$imgPath';
+          }
+        }
+      }
 
       final List lnks = (project.links.isNotEmpty)
           ? (jsonDecode(project.links) as List)
@@ -39,17 +61,43 @@ class ProjectCard extends StatelessWidget {
       linkList = lnks.map((e) => e.toString()).toList(growable: false);
     } catch (_) {}
 
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    
     return Card(
-      elevation: 2,
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      color: isLightMode ? Colors.transparent : null,
+      shape: isLightMode
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(
+                color: Color(0xFFE5E7EB),
+                width: 1,
+              ),
+            )
+          : null,
+      child: Container(
+        decoration: isLightMode
+            ? BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    const Color(0xFFF0F9FF).withOpacity(0.5), // Azul pastel muy suave
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              )
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
             if (thumbUrl != null && thumbUrl.isNotEmpty)
               _ProjectThumbnail(thumbUrl: thumbUrl),
-            if (thumbUrl != null) const SizedBox(height: 6),
+            if (thumbUrl != null) const SizedBox(height: 5),
             _ProjectHeader(
               project: project,
               linkList: linkList,
@@ -59,15 +107,16 @@ class ProjectCard extends StatelessWidget {
               onEdit: onEdit,
               onDelete: onDelete,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             _ProjectInfo(project: project),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Align(
               alignment: Alignment.bottomRight,
               child: _ProjectDetailButton(projectId: project.id),
             ),
           ],
         ),
+      ),
       ),
     );
   }

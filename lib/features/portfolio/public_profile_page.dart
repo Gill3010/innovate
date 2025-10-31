@@ -87,7 +87,33 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       final List imgs = (p.images.isNotEmpty)
                           ? (jsonDecode(p.images) as List)
                           : const [];
-                      if (imgs.isNotEmpty) thumbUrl = imgs.first?.toString();
+                      if (imgs.isNotEmpty) {
+                        final imgPath = imgs.first?.toString() ?? '';
+                        if (imgPath.isNotEmpty) {
+                          final baseUrl = ApiClient.defaultBaseUrl;
+                          if (imgPath.startsWith('http://') ||
+                              imgPath.startsWith('https://')) {
+                            // Corregir dominio si es necesario
+                            if (imgPath.contains('://127.0.0.1:') &&
+                                baseUrl.contains('10.0.2.2')) {
+                              thumbUrl = imgPath.replaceFirst(
+                                '://127.0.0.1:',
+                                '://10.0.2.2:',
+                              );
+                            } else if (imgPath.contains('://10.0.2.2:') &&
+                                baseUrl.contains('127.0.0.1')) {
+                              thumbUrl = imgPath.replaceFirst(
+                                '://10.0.2.2:',
+                                '://127.0.0.1:',
+                              );
+                            } else {
+                              thumbUrl = imgPath;
+                            }
+                          } else {
+                            thumbUrl = '${ApiClient.defaultBaseUrl}$imgPath';
+                          }
+                        }
+                      }
                       final List lnks = (p.links.isNotEmpty)
                           ? (jsonDecode(p.links) as List)
                           : const [];
@@ -95,59 +121,85 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                           .map((e) => e.toString())
                           .toList(growable: false);
                     } catch (_) {}
+                    final isLightMode =
+                        Theme.of(context).brightness == Brightness.light;
                     return Card(
-                      elevation: 2,
                       clipBehavior: Clip.antiAlias,
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (thumbUrl != null && thumbUrl.isNotEmpty)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: SizedBox(
-                                  height: 100,
-                                  width: double.infinity,
-                                  child: Image.network(
-                                    thumbUrl,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                      color: isLightMode ? Colors.transparent : null,
+                      shape: isLightMode
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                                width: 1,
                               ),
-                            if (thumbUrl != null) const SizedBox(height: 6),
-                            Text(
-                              p.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 4),
-                            if (linkList.isNotEmpty)
-                              InkWell(
-                                onTap: () async {
-                                  final uri = Uri.tryParse(linkList.first);
-                                  if (uri != null) {
-                                    await launchUrl(
-                                      uri,
-                                      mode: LaunchMode.externalApplication,
-                                    );
-                                  }
-                                },
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.link, size: 14),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Abrir',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
+                            )
+                          : null,
+                      child: Container(
+                        decoration: isLightMode
+                            ? BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white,
+                                    const Color(0xFFF0F9FF).withOpacity(0.5),
                                   ],
                                 ),
+                                borderRadius: BorderRadius.circular(12),
+                              )
+                            : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (thumbUrl != null && thumbUrl.isNotEmpty)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    height: 100,
+                                    width: double.infinity,
+                                    child: Image.network(
+                                      thumbUrl,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              if (thumbUrl != null) const SizedBox(height: 6),
+                              Text(
+                                p.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
-                          ],
+                              const SizedBox(height: 4),
+                              if (linkList.isNotEmpty)
+                                InkWell(
+                                  onTap: () async {
+                                    final uri = Uri.tryParse(linkList.first);
+                                    if (uri != null) {
+                                      await launchUrl(
+                                        uri,
+                                        mode: LaunchMode.externalApplication,
+                                      );
+                                    }
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.link, size: 14),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Abrir',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     );

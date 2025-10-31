@@ -47,8 +47,37 @@ class _InnovateAppState extends State<InnovateApp> {
       title: 'Innovate',
       themeMode: _themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6366F1), // Indigo suave
+          brightness: Brightness.light,
+        ).copyWith(
+          surface: const Color(0xFFFAFBFC), // Fondo suave para nav
+          surfaceContainerHighest: const Color(0xFFF8F9FA), // Header
+          primary: const Color(0xFF6366F1), // Botones activos
+        ),
         useMaterial3: true,
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: Color(0xFF1F2937), // Texto oscuro para contraste
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFFFAFBFC),
+          elevation: 0,
+        ),
+        cardTheme: const CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            side: BorderSide(
+              color: Color(0xFFE5E7EB),
+              width: 1,
+            ),
+          ),
+        ),
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -121,9 +150,25 @@ class _HomeShellState extends State<HomeShell> {
 
     final logged = AuthStore.instance.isLoggedIn;
 
+    final isLightMode = Theme.of(context).brightness == Brightness.light;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Innovate'),
+        flexibleSpace: isLightMode
+            ? Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFE8F4F8), // Azul pastel claro
+                      Color(0xFFF5F0FF), // Lavanda pastel
+                    ],
+                  ),
+                ),
+              )
+            : null,
         actions: [
           if (_index == 0 && logged) const PortfolioAppMenu(),
           IconButton(
@@ -167,11 +212,31 @@ class _HomeShellState extends State<HomeShell> {
       ),
       bottomNavigationBar: isWide
           ? null
-          : NavigationBar(
-              selectedIndex: _index,
-              destinations: navDestinations,
-              onDestinationSelected: (i) => setState(() => _index = i),
-            ),
+          : isLightMode
+              ? Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFFAFBFC), // Beige muy claro
+                        Color(0xFFFFF5F8), // Rosa pastel muy suave
+                      ],
+                    ),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: _index,
+                    destinations: navDestinations,
+                    onDestinationSelected: (i) => setState(() => _index = i),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                  ),
+                )
+              : NavigationBar(
+                  selectedIndex: _index,
+                  destinations: navDestinations,
+                  onDestinationSelected: (i) => setState(() => _index = i),
+                ),
     );
   }
 }
